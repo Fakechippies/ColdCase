@@ -41,9 +41,9 @@ sudo apt install -y python3 exiftool binwalk sleuthkit
 
 ### Build
 ```bash
-git clone <repository-url>
+git clone https://github.com/Fakechippies/ColdCase
 cd ColdCase
-go build -o coldcase .
+go build -o bin/coldcase .
 ```
 
 ## Usage
@@ -51,13 +51,13 @@ go build -o coldcase .
 ### Basic Commands
 ```bash
 # List all available tools
-./coldcase list
+bin/coldcase list
 
 # Check which tools are installed
-./coldcase check
+bin/coldcase check
 
 # Get help for specific tool
-./coldcase <tool> --help
+bin/coldcase <tool> --help
 ```
 
 ### Examples
@@ -65,52 +65,52 @@ go build -o coldcase .
 #### PDF Analysis
 ```bash
 # Analyze PDF for malicious content
-./coldcase pdf-parser suspicious.pdf
+bin/coldcase pdf-parser suspicious.pdf
 
 # Quick PDF scan
-./coldcase pdfid document.pdf
+bin/coldcase pdfid document.pdf
 
 # Specialized 1768 PDF analysis
-./coldcase 1768 malware.pdf
+bin/coldcase 1768 malware.pdf
 ```
 
 #### Office Document Analysis
 ```bash
 # Analyze OLE files (Word, Excel, etc.)
-./coldcase oledump document.doc
+bin/coldcase oledump document.doc
 
 # Extract embedded scripts
-./coldcase extractscripts file.exe
+bin/coldcase extractscripts file.exe
 ```
 
 #### PE File Analysis
 ```bash
 # Display PE file information
-./coldcase pecheck malware.exe
+bin/coldcase pecheck malware.exe
 ```
 
 #### Data Extraction
 ```bash
 # Extract base64 strings
-./coldcase base64dump encoded_file.bin
+bin/coldcase base64dump encoded_file.bin
 
 # Find embedded files
-./coldcase find-file-in-file container.bin
+bin/coldcase find-file-in-file container.bin
 
 # Extract specific byte ranges
-./coldcase cut-bytes -o output.bin -s 100 -l 50 file.bin
+bin/coldcase cut-bytes -o output.bin -s 100 -l 50 file.bin
 ```
 
 #### Metadata Analysis
 ```bash
 # Extract metadata with ExifTool
-./coldcase exif image.jpg
+bin/coldcase exif image.jpg
 
 # Calculate file hashes
-./coldcase hash -a sha256 malware.exe
+bin/coldcase hash -a sha256 malware.exe
 
 # Filesystem analysis
-./coldcase fls -r /dev/sdX1
+bin/coldcase fls -r /dev/sdX1
 ```
 
 ## Tool Categories
