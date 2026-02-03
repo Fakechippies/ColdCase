@@ -1,0 +1,241 @@
+# Project Structure
+
+This document explains the architecture and structure of the Integrated Digital Forensics Tool.
+
+## File Organization
+
+```
+Integrated-DF-Tool/
+├── main.go              # Entry point and command initialization
+├── go.mod              # Go module definition
+├── didier.go           # DidierStevens Suite integration
+├── exiftool.go         # ExifTool integration
+├── binwalk.go          # Binwalk integration
+├── sleuthkit.go        # Sleuth Kit integration
+├── utils.go            # Utility commands (list, check)
+├── STRUCTURE           # This file
+├── README.md           # Project documentation
+└── DidierStevensSuite/ # External Python tools directory
+    ├── 1768.py
+    ├── amsiscan.py
+    ├── pdf-parser.py
+    ├── pdfid.py
+    ├── oledump.py
+    ├── pecheck.py
+    ├── base64dump.py
+    ├── emldump.py
+    ├── jpegdump.py
+    ├── hash.py
+    ├── cut-bytes.py
+    ├── find-file-in-file.py
+    ├── byte-stats.py
+    ├── extractscripts.py
+    ├── cs-parse-traffic.py
+    └── [140+ additional Python scripts...]
+```
+
+## Core Architecture
+
+### Interface Design
+
+The tool uses a common `Tool` interface for all integrated tools:
+
+```go
+type Tool interface {
+    Name() string
+    Description() string
+    Run(args []string) error
+}
+```
+
+Each tool implementation:
+- Implements the `Tool` interface
+- Handles its own error checking and validation
+- Executes external commands as subprocesses
+- Provides clear error messages
+
+### Command Registration
+
+Commands are dynamically registered using the Cobra CLI framework:
+
+1. **Initialization**: `main.go` calls `init()` functions
+2. **Tool Registration**: Each module (didier.go, exiftool.go, etc.) registers its commands
+3. **Cobra Integration**: Commands are added to `rootCmd` 
+4. **Execution**: Cobra handles argument parsing and command routing
+
+### Module Structure
+
+#### main.go
+- Entry point and CLI initialization
+- Common utility functions (`executeCommand`, `checkToolInstalled`)
+- Root command setup with Cobra
+
+#### didier.go
+```go
+type DidierStevensTool struct {
+    name        string
+    scriptPath  string
+    description string
+}
+```
+- Implements DidierStevens Suite tools
+- Manages Python script execution
+- Path resolution to `./DidierStevensSuite/`
+
+#### exiftool.go
+```go
+type ExifTool struct{}
+```
+- Wraps ExifTool binary execution
+- Validates ExifTool installation
+- Passes arguments directly to ExifTool
+
+#### binwalk.go
+```go
+type BinwalkTool struct{}
+```
+- Wraps Binwalk binary execution
+- Firmware analysis interface
+
+#### sleuthkit.go
+```go
+type SleuthKitTool struct {
+    tool string  // "fls", "fsstat", "istat", etc.
+}
+```
+- Manages multiple Sleuth Kit tools
+- Dynamic tool name assignment
+- Common interface for all Sleuth Kit utilities
+
+#### utils.go
+- Built-in utility commands (`list`, `check`)
+- Tool availability checking
+- Comprehensive help system
+
+## Execution Flow
+
+### Command Execution
+1. User runs: `./df-tool <tool> [arguments]`
+2. Cobra parses command and arguments
+3. Corresponding tool's `Run()` method is called
+4. Tool validates prerequisites (binary/script availability)
+5. External command is executed with provided arguments
+6. Output is streamed directly to user's stdout/stderr
+
+### Error Handling
+- Tool availability checked before execution
+- Clear error messages for missing dependencies
+- Proper exit codes for script failures
+- Graceful handling of missing files/arguments
+
+## Integration Patterns
+
+### External Binary Integration
+For tools like ExifTool, Binwalk, and Sleuth Kit:
+```go
+func (e *ExifTool) Run(args []string) error {
+    if !checkToolInstalled("exiftool") {
+        return fmt.Errorf("exiftool is not installed")
+    }
+    return executeCommand("exiftool", args...)
+}
+```
+
+### Python Script Integration
+For DidierStevens Suite tools:
+```go
+func (d *DidierStevensTool) Run(args []string) error {
+    if !checkToolInstalled("python3") {
+        return fmt.Errorf("python3 is required")
+    }
+    if _, err := os.Stat(d.scriptPath); os.IsNotExist(err) {
+        return fmt.Errorf("script %s not found", d.scriptPath)
+    }
+    
+    cmdArgs := []string{d.scriptPath}
+    cmdArgs = append(cmdArgs, args...)
+    return executeCommand("python3", cmdArgs...)
+}
+```
+
+## Adding New Tools
+
+### Step 1: Create Tool Implementation
+Create a new Go file (e.g., `newtool.go`):
+```go
+type NewTool struct{}
+
+func (n *NewTool) Name() string {
+    return "newtool"
+}
+
+func (n *NewTool) Description() string {
+    return "Description of the new tool"
+}
+
+func (n *NewTool) Run(args []string) error {
+    // Implementation
+}
+```
+
+### Step 2: Add Command Registration
+```go
+func addNewToolCommand() {
+    newTool := &NewTool{}
+    
+    cmd := &cobra.Command{
+        Use:   newTool.Name(),
+        Short: newTool.Description(),
+        Run: func(cmd *cobra.Command, args []string) {
+            if err := newTool.Run(args); err != nil {
+                fmt.Printf("Error: %v\n", err)
+                os.Exit(1)
+            }
+        },
+    }
+    rootCmd.AddCommand(cmd)
+}
+```
+
+### Step 3: Register in main.go
+Add `addNewToolCommand()` to the `init()` function in `main.go`.
+
+### Step 4: Update Help System
+Update `listTools()` in `utils.go` to include the new tool in the `list` command output.
+
+## Design Benefits
+
+### Modular Architecture
+- Each tool type in separate file
+- Clean interface abstraction
+- Easy to maintain and extend
+- Minimal coupling between components
+
+### Unified Interface
+- Consistent command structure
+- Common help system
+- Centralized error handling
+- Streamlined user experience
+
+### Flexibility
+- Easy to add new tool categories
+- Support for both binary and script integration
+- Extensible tool validation system
+- Configurable tool discovery
+
+### Performance
+- Lightweight Go binary
+- Direct command execution without overhead
+- Streaming output for large operations
+- Minimal memory footprint
+
+## Future Extensibility
+
+The architecture supports easy addition of:
+- Configuration file support
+- Tool version checking
+- Output formatting options
+- Logging and audit trails
+- Plugin system for dynamic tool loading
+- Remote execution capabilities
+- Database integration for results
