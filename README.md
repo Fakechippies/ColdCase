@@ -1,4 +1,5 @@
-# Integrated Digital Forensics Tool
+![](images/gopher-image.png)
+# ColdCase: Integrated Digital Forensics Tool
 
 A comprehensive CLI tool that integrates various digital forensics utilities into a single, unified interface. Similar to netexec but specifically designed for digital forensics investigations and malware analysis.
 
