@@ -15,7 +15,7 @@ type Tool interface {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "df-tool",
+	Use:   "coldcase",
 	Short: "Integrated Digital Forensics Tool",
 	Long:  "A comprehensive CLI tool integrating various digital forensics utilities",
 }
@@ -29,7 +29,7 @@ func init() {
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
 }

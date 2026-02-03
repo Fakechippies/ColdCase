@@ -3,6 +3,10 @@
 
 A comprehensive CLI tool that integrates various digital forensics utilities into a single, unified interface. Similar to netexec but specifically designed for digital forensics investigations and malware analysis.
 
+## Showcase
+
+![](images/final.gif)
+
 ## Features
 
 ### DidierStevens Suite Integration (16 tools)
