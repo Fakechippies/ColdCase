@@ -25,6 +25,7 @@ func init() {
 	addExifToolCommand()
 	addBinwalkCommand()
 	addSleuthKitCommands()
+	addVolatility3Commands()
 }
 
 func main() {

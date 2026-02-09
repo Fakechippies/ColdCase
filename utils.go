@@ -70,9 +70,44 @@ func listTools(cmd *cobra.Command, args []string) {
 		fmt.Printf("  %s - %s\n", tool.name, tool.desc)
 	}
 
+	fmt.Println("\nVolatility3 Memory Forensics:")
+	volTools := []struct {
+		name, desc string
+	}{
+		{"vol", "Main volatility3 framework"},
+		{"volshell", "Interactive volatility shell"},
+		{"windows.pslist", "List Windows processes"},
+		{"windows.pstree", "Show Windows process tree"},
+		{"windows.dlllist", "List Windows process DLLs"},
+		{"windows.handles", "List Windows handles"},
+		{"windows.cmdline", "Show Windows process command lines"},
+		{"windows.envars", "Display Windows process environment variables"},
+		{"windows.filescan", "Scan for Windows file objects"},
+		{"windows.modules", "List Windows kernel modules"},
+		{"windows.driverscan", "Scan for Windows driver objects"},
+		{"windows.callbacks", "List Windows registered callbacks"},
+		{"windows.services", "List Windows services"},
+		{"windows.registry", "Windows registry analysis"},
+		{"windows.hashdump", "Dump Windows password hashes"},
+		{"linux.pslist", "List Linux processes"},
+		{"linux.pstree", "Show Linux process tree"},
+		{"linux.bash", "Recover Linux bash history"},
+		{"linux.proc_maps", "Linux process memory maps"},
+		{"mac.pslist", "List macOS processes"},
+		{"mac.pstree", "Show macOS process tree"},
+		{"info", "Display memory image information"},
+	}
+
+	for _, tool := range volTools {
+		fmt.Printf("  %s - %s\n", tool.name, tool.desc)
+	}
+
 	fmt.Println("\nUtility Commands:")
 	fmt.Printf("  %s - %s\n", "list", "Show this list of available tools")
 	fmt.Printf("  %s - %s\n", "check", "Check which tools are installed")
+	fmt.Printf("  %s - %s\n", "install", "Install project dependencies")
+	fmt.Printf("  %s - %s\n", "deps", "Manage project dependencies")
+	fmt.Printf("  %s - %s\n", "platform", "Show platform-specific setup information")
 }
 
 func checkTools(cmd *cobra.Command, args []string) {
@@ -101,5 +136,40 @@ func checkTools(cmd *cobra.Command, args []string) {
 		fmt.Println("✓ DidierStevensSuite - found")
 	} else {
 		fmt.Println("✗ DidierStevensSuite - not found")
+	}
+
+	volDeps := checkVolatility3Dependencies()
+	for dep, installed := range volDeps {
+		if installed {
+			fmt.Printf("✓ %s - available\n", dep)
+		} else {
+			fmt.Printf("✗ %s - not found\n", dep)
+		}
+	}
+
+	// Check for uv
+	if checkToolInstalled("uv") {
+		fmt.Println("✓ uv - available for fast dependency management")
+	} else {
+		fmt.Println("✗ uv - not found (optional for faster Python dependency management)")
+	}
+
+	// Show detected package manager
+	if checkToolInstalled("apt") {
+		fmt.Println("✓ apt - Ubuntu/Debian package manager detected")
+	} else if checkToolInstalled("dnf") {
+		fmt.Println("✓ dnf - Fedora/RHEL package manager detected")
+	} else if checkToolInstalled("yum") {
+		fmt.Println("✓ yum - RHEL/CentOS package manager detected")
+	} else if checkToolInstalled("pacman") {
+		fmt.Println("✓ pacman - Arch Linux package manager detected")
+	} else if checkToolInstalled("brew") {
+		fmt.Println("✓ brew - macOS package manager detected")
+	} else if checkToolInstalled("choco") {
+		fmt.Println("✓ choco - Chocolatey package manager detected")
+	} else if checkToolInstalled("winget") {
+		fmt.Println("✓ winget - Windows package manager detected")
+	} else {
+		fmt.Println("⚠️  No supported package manager detected")
 	}
 }
