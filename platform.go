@@ -39,32 +39,32 @@ func showLinuxInfo() {
 	fmt.Println("=========================")
 
 	if checkToolInstalled("apt") {
-		fmt.Println("✓ Detected: Ubuntu/Debian (apt)")
+		fmt.Println("[*] Detected: Ubuntu/Debian (apt)")
 		fmt.Println("\nInstallation commands:")
 		fmt.Println("  sudo apt update")
 		fmt.Println("  sudo apt install -y python3 python3-pip exiftool binwalk sleuthkit")
 		fmt.Println("\nColdCase commands:")
 		fmt.Println("  ./bin/coldcase install")
 	} else if checkToolInstalled("dnf") {
-		fmt.Println("✓ Detected: Fedora/RHEL (dnf)")
+		fmt.Println("[*] Detected: Fedora/RHEL (dnf)")
 		fmt.Println("\nInstallation commands:")
 		fmt.Println("  sudo dnf install -y python3 python3-pip perl-Image-ExifTool binwalk sleuthkit")
 		fmt.Println("\nColdCase commands:")
 		fmt.Println("  ./bin/coldcase install")
 	} else if checkToolInstalled("yum") {
-		fmt.Println("✓ Detected: RHEL/CentOS (yum)")
+		fmt.Println("[*] Detected: RHEL/CentOS (yum)")
 		fmt.Println("\nInstallation commands:")
 		fmt.Println("  sudo yum install -y python3 python3-pip perl-Image-ExifTool binwalk sleuthkit")
 		fmt.Println("\nColdCase commands:")
 		fmt.Println("  ./bin/coldcase install")
 	} else if checkToolInstalled("pacman") {
-		fmt.Println("✓ Detected: Arch Linux (pacman)")
+		fmt.Println("[*] Detected: Arch Linux (pacman)")
 		fmt.Println("\nInstallation commands:")
 		fmt.Println("  sudo pacman -Sy --needed python python-pip perl-image-exiftool binwalk sleuthkit")
 		fmt.Println("\nColdCase commands:")
 		fmt.Println("  ./bin/coldcase install")
 	} else {
-		fmt.Println("⚠️  No supported package manager detected")
+		fmt.Println("[!] No supported package manager detected")
 		fmt.Println("\nManual installation required. Choose your distribution:")
 		fmt.Println("\nUbuntu/Debian:")
 		fmt.Println("  sudo apt update && sudo apt install -y python3 python3-pip exiftool binwalk sleuthkit")
@@ -85,14 +85,14 @@ func showMacOSInfo() {
 	fmt.Println("=============")
 
 	if checkToolInstalled("brew") {
-		fmt.Println("✓ Detected: Homebrew")
+		fmt.Println("[*] Detected: Homebrew")
 		fmt.Println("\nInstallation commands:")
 		fmt.Println("  brew install python exiftool binwalk sleuthkit")
 		fmt.Println("\nColdCase commands:")
 		fmt.Println("  ./bin/coldcase install")
 		fmt.Println("  ./bin/coldcase install --uv  # for faster Python deps")
 	} else {
-		fmt.Println("⚠️  Homebrew not found")
+		fmt.Println("[!] Homebrew not found")
 		fmt.Println("\nInstall Homebrew first:")
 		fmt.Println("  /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
 		fmt.Println("\nThen install dependencies:")
@@ -110,20 +110,20 @@ func showWindowsInfo() {
 	fmt.Println("===============")
 
 	if checkToolInstalled("choco") {
-		fmt.Println("✓ Detected: Chocolatey")
+		fmt.Println("[*] Detected: Chocolatey")
 		fmt.Println("\nInstallation commands:")
 		fmt.Println("  choco install -y python exiftool")
 		fmt.Println("\nColdCase commands:")
 		fmt.Println("  .\\bin\\coldcase.exe install")
 	} else if checkToolInstalled("winget") {
-		fmt.Println("✓ Detected: Winget")
+		fmt.Println("[*] Detected: Winget")
 		fmt.Println("\nInstallation commands:")
 		fmt.Println("  winget install -e --id Python.Python.3")
 		fmt.Println("  winget install -e --id ExifTool.ExifTool")
 		fmt.Println("\nColdCase commands:")
 		fmt.Println("  .\\bin\\coldcase.exe install")
 	} else {
-		fmt.Println("⚠️  No package manager detected")
+		fmt.Println("[!] No package manager detected")
 		fmt.Println("\nInstall Chocolatey or Winget first:")
 		fmt.Println("\nChocolatey:")
 		fmt.Println("  Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))")

@@ -126,50 +126,50 @@ func checkTools(cmd *cobra.Command, args []string) {
 
 	for _, tool := range tools {
 		if checkToolInstalled(tool) {
-			fmt.Printf("✓ %s - installed\n", tool)
+			fmt.Printf("[*] %s - installed\n", tool)
 		} else {
-			fmt.Printf("✗ %s - not found\n", tool)
+			fmt.Printf("[x] %s - not found\n", tool)
 		}
 	}
 
 	if _, err := os.Stat("./DidierStevensSuite"); err == nil {
-		fmt.Println("✓ DidierStevensSuite - found")
+		fmt.Println("[*] DidierStevensSuite - found")
 	} else {
-		fmt.Println("✗ DidierStevensSuite - not found")
+		fmt.Println("[x] DidierStevensSuite - not found")
 	}
 
 	volDeps := checkVolatility3Dependencies()
 	for dep, installed := range volDeps {
 		if installed {
-			fmt.Printf("✓ %s - available\n", dep)
+			fmt.Printf("[*] %s - available\n", dep)
 		} else {
-			fmt.Printf("✗ %s - not found\n", dep)
+			fmt.Printf("[x] %s - not found\n", dep)
 		}
 	}
 
 	// Check for uv
 	if checkToolInstalled("uv") {
-		fmt.Println("✓ uv - available for fast dependency management")
+		fmt.Println("[*] uv - available for fast dependency management")
 	} else {
-		fmt.Println("✗ uv - not found (optional for faster Python dependency management)")
+		fmt.Println("[x] uv - not found (optional for faster Python dependency management)")
 	}
 
 	// Show detected package manager
 	if checkToolInstalled("apt") {
-		fmt.Println("✓ apt - Ubuntu/Debian package manager detected")
+		fmt.Println("[*] apt - Ubuntu/Debian package manager detected")
 	} else if checkToolInstalled("dnf") {
-		fmt.Println("✓ dnf - Fedora/RHEL package manager detected")
+		fmt.Println("[*] dnf - Fedora/RHEL package manager detected")
 	} else if checkToolInstalled("yum") {
-		fmt.Println("✓ yum - RHEL/CentOS package manager detected")
+		fmt.Println("[*] yum - RHEL/CentOS package manager detected")
 	} else if checkToolInstalled("pacman") {
-		fmt.Println("✓ pacman - Arch Linux package manager detected")
+		fmt.Println("[*] pacman - Arch Linux package manager detected")
 	} else if checkToolInstalled("brew") {
-		fmt.Println("✓ brew - macOS package manager detected")
+		fmt.Println("[*] brew - macOS package manager detected")
 	} else if checkToolInstalled("choco") {
-		fmt.Println("✓ choco - Chocolatey package manager detected")
+		fmt.Println("[*] choco - Chocolatey package manager detected")
 	} else if checkToolInstalled("winget") {
-		fmt.Println("✓ winget - Windows package manager detected")
+		fmt.Println("[*] winget - Windows package manager detected")
 	} else {
-		fmt.Println("⚠️  No supported package manager detected")
+		fmt.Println("[!] No supported package manager detected")
 	}
 }
