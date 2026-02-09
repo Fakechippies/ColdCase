@@ -14,7 +14,7 @@ A comprehensive CLI tool that integrates various digital forensics utilities int
 
 ![](images/final.gif)
 
-## [*] Features Overview
+##  Features Overview
 
 [![DidierStevens Suite](https://img.shields.io/badge/DidierStevens%20Suite-16%20tools-red?style=flat)](#didierstevens-suite-integration-16-tools)
 [![Volatility3](https://img.shields.io/badge/Volatility3-22%20tools-purple?style=flat)](#volatility3-memory-forensics-22-tools)
@@ -221,28 +221,28 @@ bin/coldcase linux.pslist -f linux_memory.dmp
 bin/coldcase windows.registry -f memory.dmp
 ```
 
-## [*] Tool Categories
+##  Tool Categories
 
-### [*] Document Analysis
+###  Document Analysis
 [![PDF](https://img.shields.io/badge/PDF-Tools-red?style=flat)](#document-analysis)
 [![Office](https://img.shields.io/badge/Office-Tools-orange?style=flat)](#document-analysis)
 - PDF documents: `pdf-parser`, `pdfid`, `1768`
 - Office documents: `oledump`
 - Email files: `emldump`
 
-### [*] Executable Analysis  
+###  Executable Analysis  
 [![PE](https://img.shields.io/badge/PE-Analysis-yellow?style=flat)](#executable-analysis)
 - PE files: `pecheck`
 - Embedded scripts: `extractscripts`
 - Cobalt Strike: `cs-parse-traffic`
 
-### [*] Data Extraction
+###  Data Extraction
 [![Data](https://img.shields.io/badge/Data-Extraction-blue?style=flat)](#data-extraction)
 - Encoded data: `base64dump`
 - File carving: `find-file-in-file`
 - Byte manipulation: `cut-bytes`
 
-### [*] Metadata & Analysis
+###  Metadata & Analysis
 [![Metadata](https://img.shields.io/badge/Metadata-Analysis-green?style=flat)](#metadata--analysis)
 - File metadata: `exif`, `jpegdump`
 - File hashing: `hash`
@@ -335,7 +335,7 @@ The tool is built in Go with a modular architecture:
 3. Update `utils.go` to include tools in the `list` command
 4. Ensure proper error handling and help text
 
-## [*] Project Stats
+##  Project Stats
 
 [![GitHub stars](https://img.shields.io/github/stars/Fakechippies/ColdCase?style=flat&logo=github)](https://github.com/Fakechippies/ColdCase/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/Fakechippies/ColdCase?style=flat&logo=github)](https://github.com/Fakechippies/ColdCase/network)
