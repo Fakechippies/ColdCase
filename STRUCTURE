@@ -1,37 +1,54 @@
 # Project Structure
 
-This document explains the architecture and structure of the Integrated Digital Forensics Tool.
+This document explains the architecture and structure of the ColdCase digital forensics tool.
 
 ## File Organization
 
 ```
-Integrated-DF-Tool/
+ColdCase/
 ├── main.go              # Entry point and command initialization
 ├── go.mod              # Go module definition
+├── go.sum              # Go module dependencies
 ├── didier.go           # DidierStevens Suite integration
 ├── exiftool.go         # ExifTool integration
 ├── binwalk.go          # Binwalk integration
 ├── sleuthkit.go        # Sleuth Kit integration
+├── volatility3.go       # Volatility3 memory forensics integration
 ├── utils.go            # Utility commands (list, check)
+├── dependencies.go     # Dependency management and installation
+├── platform.go         # Platform-specific setup and information
 ├── STRUCTURE           # This file
 ├── README.md           # Project documentation
-└── DidierStevensSuite/ # External Python tools directory
-    ├── 1768.py
-    ├── amsiscan.py
-    ├── pdf-parser.py
-    ├── pdfid.py
-    ├── oledump.py
-    ├── pecheck.py
-    ├── base64dump.py
-    ├── emldump.py
-    ├── jpegdump.py
-    ├── hash.py
-    ├── cut-bytes.py
-    ├── find-file-in-file.py
-    ├── byte-stats.py
-    ├── extractscripts.py
-    ├── cs-parse-traffic.py
-    └── [140+ additional Python scripts...]
+├── LICENSE             # Project license
+├── bin/                # Compiled binaries directory
+├── images/             # Project images and documentation
+├── DidierStevensSuite/ # External Python tools directory
+│   ├── 1768.py
+│   ├── amsiscan.py
+│   ├── pdf-parser.py
+│   ├── pdfid.py
+│   ├── oledump.py
+│   ├── pecheck.py
+│   ├── base64dump.py
+│   ├── emldump.py
+│   ├── jpegdump.py
+│   ├── hash.py
+│   ├── cut-bytes.py
+│   ├── find-file-in-file.py
+│   ├── byte-stats.py
+│   ├── extractscripts.py
+│   ├── cs-parse-traffic.py
+│   └── [140+ additional Python scripts...]
+└── volatility3/         # Volatility3 memory forensics framework
+    ├── vol.py          # Main Volatility3 entry point
+    ├── volshell.py     # Interactive Volatility shell
+    ├── volatility3/    # Volatility3 Python package
+    ├── development/    # Development tools and scripts
+    ├── doc/           # Documentation
+    ├── test/          # Test suite
+    ├── pyproject.toml # Python project configuration
+    ├── README.md      # Volatility3 documentation
+    └── LICENSE.txt    # Volatility3 license
 ```
 
 ## Core Architecture
@@ -107,15 +124,40 @@ type SleuthKitTool struct {
 - Dynamic tool name assignment
 - Common interface for all Sleuth Kit utilities
 
+#### volatility3.go
+```go
+type Volatility3Tool struct {
+    name        string
+    description string
+    command     string
+}
+```
+- Integrates Volatility3 memory forensics framework
+- Supports Windows, Linux, and macOS memory analysis
+- Provides 18+ memory analysis commands
+- Manages Python dependency execution
+
 #### utils.go
 - Built-in utility commands (`list`, `check`)
 - Tool availability checking
 - Comprehensive help system
 
+#### dependencies.go
+- Cross-platform dependency installation
+- Python package management (pip/uv support)
+- System package manager detection
+- Dependency verification and updates
+
+#### platform.go
+- Platform detection and setup guidance
+- OS-specific installation instructions
+- Package manager identification
+- Platform-specific memory analysis notes
+
 ## Execution Flow
 
 ### Command Execution
-1. User runs: `./df-tool <tool> [arguments]`
+1. User runs: `./bin/coldcase <tool> [arguments]`
 2. Cobra parses command and arguments
 3. Corresponding tool's `Run()` method is called
 4. Tool validates prerequisites (binary/script availability)
@@ -203,6 +245,12 @@ Add `addNewToolCommand()` to the `init()` function in `main.go`.
 ### Step 4: Update Help System
 Update `listTools()` in `utils.go` to include the new tool in the `list` command output.
 
+### Step 5: Update Dependencies (Optional)
+If the new tool requires additional dependencies:
+- Update dependency checking in `dependencies.go`
+- Add platform-specific installation instructions in `platform.go`
+- Update dependency lists and installation commands
+
 ## Design Benefits
 
 ### Modular Architecture
@@ -217,9 +265,21 @@ Update `listTools()` in `utils.go` to include the new tool in the `list` command
 - Centralized error handling
 - Streamlined user experience
 
+### Cross-Platform Support
+- Automatic platform detection
+- Package manager identification
+- OS-specific installation guides
+- Multi-platform memory analysis
+
+### Dependency Management
+- Automated dependency installation
+- Multiple package manager support
+- Python environment management (pip/uv)
+- Comprehensive dependency verification
+
 ### Flexibility
 - Easy to add new tool categories
-- Support for both binary and script integration
+- Support for binary, script, and Python package integration
 - Extensible tool validation system
 - Configurable tool discovery
 
@@ -229,13 +289,36 @@ Update `listTools()` in `utils.go` to include the new tool in the `list` command
 - Streaming output for large operations
 - Minimal memory footprint
 
+## New Features Added
+
+### Dependency Management System
+- **`install` command**: Automated installation of all dependencies
+- **`deps` subcommands**: Install, check, and update Python dependencies
+- **Cross-platform support**: Detects apt, dnf, yum, pacman, brew, choco, winget
+- **UV integration**: Optional faster Python package management
+
+### Platform Support
+- **`platform` command**: Display platform-specific setup instructions
+- **OS detection**: Automatic Linux, macOS, Windows identification
+- **Distribution detection**: Ubuntu/Debian, Fedora/RHEL, Arch Linux recognition
+- **Memory analysis guidance**: Platform-specific forensics workflows
+
+### Memory Forensics Integration
+- **Volatility3 integration**: Complete memory forensics framework
+- **18+ memory commands**: Windows, Linux, macOS analysis tools
+- **Process analysis**: pslist, pstree, dlllist, handles, cmdline
+- **Registry and file analysis**: registry.scan, filescan, modules
+- **Hash extraction**: Password hash recovery capabilities
+
 ## Future Extensibility
 
 The architecture supports easy addition of:
 - Configuration file support
 - Tool version checking
-- Output formatting options
+- Output formatting options (JSON, XML, CSV)
 - Logging and audit trails
 - Plugin system for dynamic tool loading
 - Remote execution capabilities
 - Database integration for results
+- Web interface for forensic analysis
+- Container-based analysis environments
