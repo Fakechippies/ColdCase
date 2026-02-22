@@ -109,6 +109,7 @@ func Run(opts RunOpts) error {
 			OutputFile:       outPath,
 		}
 		_ = logger.LogCommand(entry)
+		fmt.Fprintf(os.Stderr, "\n[*] Signed entry logged to session: %s\n", sID)
 	}
 
 	return runErr
