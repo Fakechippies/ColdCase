@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
+	"coldcase/pkg/session"
 	"coldcase/pkg/tools"
 )
 
@@ -37,14 +39,79 @@ type RunOpts struct {
 // Native execution is attempted first. If the binary is not found on PATH,
 // Run falls back to running the command inside a container.
 func Run(opts RunOpts) error {
+	sID := session.GetActiveSessionID()
+	var logger *session.Logger
+	var sess *session.Session
+
+	if sID != "" {
+		m := session.NewManager()
+		var err error
+		sess, err = m.Load(sID)
+		if err == nil {
+			if sess.State != session.StateUnlocked {
+				return fmt.Errorf("active session '%s' is %s and read-only", sID, sess.State)
+			}
+			logger = session.NewLogger(sess)
+		}
+	}
+
+	start := time.Now()
+	var runErr error
+	var output []byte
+
 	if tools.CheckToolInstalled(opts.Binary) {
-		return runNative(opts)
+		output, runErr = runNative(opts)
+	} else {
+		rt, err := detectRuntime()
+		if err != nil {
+			return fmt.Errorf("'%s' not found on PATH and no container runtime available: %w", opts.Binary, err)
+		}
+		output, runErr = runInContainer(rt, opts)
 	}
-	rt, err := detectRuntime()
-	if err != nil {
-		return fmt.Errorf("'%s' not found on PATH and no container runtime available: %w", opts.Binary, err)
+
+	if logger != nil && sess != nil {
+		duration := time.Since(start)
+
+		// Map input files
+		var inputFiles []session.FileMetadata
+		for _, arg := range opts.Args {
+			if _, err := os.Stat(arg); err == nil {
+				meta, err := logger.HashInputFile(arg)
+				if err == nil {
+					inputFiles = append(inputFiles, meta)
+				}
+			}
+		}
+
+		// Save output
+		idx := len(sess.Commands) + 1
+		outPath, _ := logger.SaveOutput(idx, opts.Binary, output)
+
+		preview := ""
+		if len(output) > 500 {
+			preview = string(output[:500]) + "..."
+		} else {
+			preview = string(output)
+		}
+
+		wd, _ := os.Getwd()
+		entry := session.CommandEntry{
+			Index:            idx,
+			Timestamp:        start,
+			Command:          opts.Binary,
+			FullCommand:      fmt.Sprintf("%s %v", opts.Binary, opts.Args),
+			Args:             opts.Args,
+			InputFiles:       inputFiles,
+			WorkingDirectory: wd,
+			ExitCode:         0, // Simplified for now
+			DurationMS:       duration.Milliseconds(),
+			OutputPreview:    preview,
+			OutputFile:       outPath,
+		}
+		_ = logger.LogCommand(entry)
 	}
-	return runInContainer(rt, opts)
+
+	return runErr
 }
 
 // ContainerAvailable reports whether Docker or Podman is available.
@@ -70,18 +137,19 @@ func ImageName() string {
 
 // ─── internal ─────────────────────────────────────────────────────────────────
 
-func runNative(opts RunOpts) error {
+func runNative(opts RunOpts) ([]byte, error) {
 	cmd := exec.Command(opts.Binary, opts.Args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
 	if opts.WorkDir != "" {
 		cmd.Dir = opts.WorkDir
 	}
-	return cmd.Run()
+
+	// Capture output while still showing it to the user
+	output, err := cmd.CombinedOutput()
+	fmt.Print(string(output))
+	return output, err
 }
 
-func runInContainer(runtime string, opts RunOpts) error {
+func runInContainer(runtime string, opts RunOpts) ([]byte, error) {
 	image := ImageName()
 
 	dockerArgs := []string{"run", "--rm", "-i"}
@@ -111,10 +179,9 @@ func runInContainer(runtime string, opts RunOpts) error {
 	dockerArgs = append(dockerArgs, remapped...)
 
 	cmd := exec.Command(runtime, dockerArgs...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	return cmd.Run()
+	output, err := cmd.CombinedOutput()
+	fmt.Print(string(output))
+	return output, err
 }
 
 func detectRuntime() (string, error) {

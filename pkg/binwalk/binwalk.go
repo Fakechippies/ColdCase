@@ -1,11 +1,7 @@
 // Package binwalk integrates the Binwalk firmware analysis tool.
 package binwalk
 
-import (
-	"fmt"
-
-	"coldcase/pkg/tools"
-)
+import "coldcase/pkg/runner"
 
 // BinwalkTool wraps the binwalk binary.
 type BinwalkTool struct{}
@@ -23,8 +19,8 @@ func (b *BinwalkTool) Description() string {
 
 // Run invokes binwalk with the provided arguments.
 func (b *BinwalkTool) Run(args []string) error {
-	if !tools.CheckToolInstalled("binwalk") {
-		return fmt.Errorf("binwalk is not installed")
-	}
-	return tools.ExecuteCommand("binwalk", args...)
+	return runner.Run(runner.RunOpts{
+		Binary: "binwalk",
+		Args:   args,
+	})
 }

@@ -8,21 +8,24 @@
 [![Docker](https://img.shields.io/badge/Docker-Hybrid%20Runtime-blue?style=flat&logo=docker)](https://www.docker.com/)
 [![Total Tools](https://img.shields.io/badge/Total%20Tools-118%2B%20integrated-blue?style=flat)](#features)
 
-A comprehensive CLI tool that integrates 118+ digital forensics utilities into a single, unified interface. ColdCase implements a **Hybrid Execution Model**: it runs tools natively if available, but transparently falls back to a Docker/Podman container if not, with automatic path mapping.
+A comprehensive CLI tool that integrates 118+ digital forensics utilities into a single, unified interface. ColdCase implements a **Hybrid Execution Model**: it runs tools natively if available, but transparently falls back to a Docker container if not, with automatic path mapping.
 
 ## Showcase
 
 ![](images/final.gif)
 
-## 🚀 Key Features
+## Key Features
 
 - **Hybrid Proxy Runtime**: Native speed when possible, container reliability when needed.
 - **Smart Path Mapping**: Host paths in arguments are automatically detected and mounted to the container.
 - **Extended Toolset**: 118+ tools across 14 categories.
+- **Forensic Session Management**: Automated audit logging with Ed25519 cryptographic signing.
+- **Advanced State Control**: Unlocked, Locked, and SEALED states for rigid chain of custody.
+- **Integrated Key Management**: Built-in Ed25519 keypair generation and management.
 - **Plaso Integration**: Structured `plaso` command group for timeline analysis.
 - **Container Management**: Built-in commands to build, pull, and shell into the forensics environment.
 
-## 🛠️ Tool Categories
+## Tool Categories
 
 ### [DidierStevens Suite](https://blog.didierstevens.com/programs/pdf-tools/) (15 tools)
 `1768`, `pdf-parser`, `pdfid`, `oledump`, `pecheck`, `base64dump`, `emldump`, `jpegdump`, `hash`, `cut-bytes`, `find-file-in-file`, `byte-stats`, `extractscripts`, `cs-parse-traffic`, `amsiscan`
@@ -64,11 +67,11 @@ A comprehensive CLI tool that integrates 118+ digital forensics utilities into a
 ### Sleuth Kit (5 tools)
 `fls`, `fsstat`, `istat`, `jls`, `tsk_loaddb`
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 - [Go 1.25+](https://golang.org/)
-- (Optional) Docker or Podman for the hybrid container runtime.
+- (Optional) Docker for the hybrid container runtime.
 
 ### Automatic Setup
 ```bash
@@ -86,13 +89,13 @@ bin/coldcase install
 bin/coldcase install --container
 ```
 
-## 💻 Usage
+## Usage
 
 ### Basic Commands
 ```bash
 bin/coldcase list             # Show all 118+ tools
 bin/coldcase check            # Check tool status (native/container)
-bin/coldcase container status  # Check Docker/Podman status
+bin/coldcase container status  # Check Docker status
 ```
 
 ### Hybrid Engine Examples
@@ -109,16 +112,41 @@ bin/coldcase plaso sort storage.plaso  # psort
 bin/coldcase plaso parsers --list      # list available parsers
 ```
 
+### Forensic Session Management
+
+ColdCase provides a forensically sound environment by logging every action.
+
+```bash
+# 1. Setup investigator keys
+bin/coldcase keys generate
+
+# 2. Start a signed forensic session
+eval $(bin/coldcase session start case-001 --sign)
+
+# 3. Run any tool - execution & hashes are logged automatically
+bin/coldcase pdfid malware.pdf
+
+# 4. Verify cryptographic integrity
+bin/coldcase session verify case-001
+
+# 5. Lock or PERMANENTLY SEAL the session
+bin/coldcase session lock case-001
+bin/coldcase session seal case-001
+
+# 6. Export the investigation report
+bin/coldcase session export case-001 --format html > report.html
+```
+
 ### Container Management
 ```bash
 bin/coldcase container build  # Build the forensics image locally
 bin/coldcase container shell  # Open a bash shell inside the container
 ```
 
-## 🛠️ Architecture
+## Architecture
 
 ColdCase uses a **Modular Proxy Pattern** written in Go:
-- **`pkg/runner`**: The core execution engine. It checks for native binary existence, and if missing, executes the command via `docker run` or `podman run`.
+- **`pkg/runner`**: The core execution engine. It checks for native binary existence, and if missing, executes the command via `docker run`.
 - **Argument Remapping**: The runner scans arguments for host filesystem paths, generates bind-mount flags (`-v`), and remaps the argument paths to match the container environment.
 - **`Dockerfile`**: A multi-stage build providing a pre-configured forensics environment with all 118+ utilities.
 

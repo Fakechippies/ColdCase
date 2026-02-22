@@ -2,9 +2,8 @@
 package sleuthkit
 
 import (
+	"coldcase/pkg/runner"
 	"fmt"
-
-	"coldcase/pkg/tools"
 )
 
 // SleuthKitTool wraps a single Sleuth Kit binary.
@@ -35,10 +34,10 @@ func (s *SleuthKitTool) Description() string {
 
 // Run invokes the Sleuth Kit binary with the provided arguments.
 func (s *SleuthKitTool) Run(args []string) error {
-	if !tools.CheckToolInstalled(s.tool) {
-		return fmt.Errorf("%s is not installed (install sleuthkit)", s.tool)
-	}
-	return tools.ExecuteCommand(s.tool, args...)
+	return runner.Run(runner.RunOpts{
+		Binary: s.tool,
+		Args:   args,
+	})
 }
 
 // Tools returns the standard set of Sleuth Kit tools.

@@ -3,10 +3,10 @@
 package volatility3
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
+	"coldcase/pkg/runner"
 	"coldcase/pkg/tools"
 )
 
@@ -37,18 +37,15 @@ func (v Volatility3Tool) Run(args []string) error {
 // RunWithVolDir runs vol.py located at volDir/vol.py with the given plugin and args.
 func RunWithVolDir(volDir, command string, args []string) error {
 	volPath := filepath.Join(volDir, "vol.py")
-	if !tools.CheckToolInstalled("python3") {
-		return fmt.Errorf("python3 is required but not installed")
-	}
-	if _, err := os.Stat(volPath); os.IsNotExist(err) {
-		return fmt.Errorf("volatility3 not found at %s", volPath)
-	}
 	cmdArgs := []string{volPath}
 	if command != "" {
 		cmdArgs = append(cmdArgs, command)
 	}
 	cmdArgs = append(cmdArgs, args...)
-	return tools.ExecuteCommand("python3", cmdArgs...)
+	return runner.Run(runner.RunOpts{
+		Binary: "python3",
+		Args:   cmdArgs,
+	})
 }
 
 // Tools returns the full list of pre-defined Volatility3 tools.

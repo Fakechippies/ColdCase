@@ -4,11 +4,9 @@
 package didier
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 
-	"coldcase/pkg/tools"
+	"coldcase/pkg/runner"
 )
 
 // DidierStevensTool wraps a single DidierStevens Python script.
@@ -27,14 +25,11 @@ func (d *DidierStevensTool) Description() string { return d.description }
 // Run executes the Python script with the given arguments.
 // Returns an error if python3 is not installed or the script is missing.
 func (d *DidierStevensTool) Run(args []string) error {
-	if !tools.CheckToolInstalled("python3") {
-		return fmt.Errorf("python3 is required but not installed")
-	}
-	if _, err := os.Stat(d.scriptPath); os.IsNotExist(err) {
-		return fmt.Errorf("script %s not found", d.scriptPath)
-	}
 	cmdArgs := append([]string{d.scriptPath}, args...)
-	return tools.ExecuteCommand("python3", cmdArgs...)
+	return runner.Run(runner.RunOpts{
+		Binary: "python3",
+		Args:   cmdArgs,
+	})
 }
 
 // ScriptPath returns the resolved path to the underlying .py script.

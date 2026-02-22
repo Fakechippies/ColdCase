@@ -1,179 +1,1011 @@
-2. Volatility3 Plugin Expansion (+10 tools)
-Additional commonly-used Volatility3 plugins:
+# ColdCase: Forensic Session Management & Tool Integration
 
-windows.malfind - Detect code injection and memory anomalies
-windows.mutantscan - Scan for mutexes (malware indicators)
-windows.ssdt - System Service Descriptor Table analysis
-windows.getsids - Extract Security Identifiers
-windows.privs - List process privileges
-windows.vadinfo - Virtual Address Descriptor information
-windows.dumpfiles - Extract files from memory
-windows.mftscan - Scan for MFT entries in memory
-linux.mount_info - Linux mount point information
-mac.mount_info - macOS mount point information
+## Forensic Session Management
 
-Rationale: Expands memory forensics capabilities for malware detection and advanced system analysis.
+### Overview
+ColdCase implements a comprehensive session management system designed specifically for forensic investigations, providing:
+- **Audit logging** - Complete command history with timestamps
+- **Cryptographic signing** - Tamper-proof evidence chain
+- **Encryption** - Protection for sensitive cases
+- **Session states** - Unlocked, locked, and permanently sealed
+- **Multi-terminal support** - Parallel investigations
 
-3. Timeline & Log Analysis (+5 tools)
-Essential for incident reconstruction:
+---
 
-plaso (log2timeline) - Multi-source timeline generation
-hayabusa - Windows event log threat hunting
-evtx_dump - EVTX file parsing and conversion
-mactime - Timeline generation from bodyfile
-chainsaw - Windows event log analysis and sigma detection
+## Core Concepts
 
-Rationale: Timeline analysis is critical for incident response. These tools enable comprehensive temporal correlation across multiple evidence sources.
+### Session
+A **session** represents a single forensic investigation. All commands executed within a session are logged, tracked, and can be cryptographically signed and encrypted.
 
-4. Network Forensics (+6 tools)
-Currently missing from ColdCase:
+**Session Data Structure:**
+```
+~/.coldcase/sessions/case-2024-001/
+├── session.json              # Session metadata and command log
+├── outputs/                  # All tool outputs preserved
+│   ├── pdfid_001.txt
+│   ├── pdf-parser_002.txt
+│   └── hash_003.txt
+├── evidence-hashes.json      # Pre-analysis file hashes
+├── session.sig               # Cryptographic signatures (if signed)
+└── .sealed                   # Seal metadata (if sealed)
+```
 
-tshark - Command-line Wireshark for PCAP analysis
-tcpdump - Packet capture and analysis
-zeek - Network security monitoring and analysis
-ngrep - Network packet grep
-networkminer-cli - Network forensic analysis (if CLI available)
-pcapfix - Repair corrupted PCAP files
+### Per-Terminal Sessions
+Each terminal tracks its own active session via environment variable, enabling:
+- **Parallel investigations** - Multiple sessions active simultaneously in different terminals
+- **Terminal independence** - Closing a terminal doesn't affect the session data
+- **Simple resumption** - Resume any session in any terminal
 
-Rationale: Network forensics is a major investigation domain. Adding these tools provides coverage for packet analysis, protocol decoding, and network-based incident response.
+---
 
-5. Malware & Pattern Matching (+5 tools)
-Enhanced malware analysis capabilities:
+## Feature 1: Audit Logging
 
-yara - Pattern matching and malware classification
-floss - Automatic string deobfuscation (FireEye Labs)
-strings - Extract printable strings from binaries
-capa - Detect malware capabilities automatically
-virustotal-cli - VirusTotal API wrapper for hash/file checking
+### Automatic Command Logging
+Every command executed within a session is automatically logged with comprehensive metadata.
 
-Rationale: YARA is industry-standard for malware detection. Combined with automated capability analysis (capa) and deobfuscation (floss), this provides comprehensive malware triage.
+**Logged Information:**
+```json
+{
+  "timestamp": "2024-02-22T14:30:15Z",
+  "command": "pdfid",
+  "full_command": "bin/coldcase pdfid suspicious.pdf",
+  "args": ["suspicious.pdf"],
+  "input_files": [
+    {
+      "path": "suspicious.pdf",
+      "sha256": "a3f5c9d2e8b1f4a7c6d9e2f5b8a1c4d7e0f3b6a9c2d5e8f1b4a7c0d3e6f9b2a5",
+      "md5": "d41d8cd98f00b204e9800998ecf8427e",
+      "size": 45632,
+      "modified": "2024-02-20T10:15:00Z"
+    }
+  ],
+  "tool_path": "/usr/local/bin/pdfid.py",
+  "tool_version": "0.2.7",
+  "exit_code": 0,
+  "duration_ms": 145,
+  "output_preview": "PDFiD 0.2.7...",
+  "output_file": "outputs/pdfid_001.txt",
+  "working_directory": "/home/investigator/evidence"
+}
+```
 
-6. Mobile Forensics (+4 tools)
-iOS and Android artifact extraction:
+### Audit Trail Benefits
+- **Reproducibility** - Other investigators can reproduce your analysis exactly
+- **Chain of custody** - Complete record of what was done to evidence
+- **Court admissibility** - Documented procedure for legal proceedings
+- **Error detection** - Identify mistakes or tool failures
+- **Timeline reconstruction** - Understand investigation progression
 
-aleapp - Android Logs Events And Protobuf Parser
-ileapp - iOS Logs Events And Plists Parser
-adb - Android Debug Bridge for device interaction
-ideviceinfo - iOS device information extraction
+### Evidence Integrity
+All input files are automatically hashed before analysis:
+```json
+{
+  "evidence_files": [
+    {
+      "original_path": "/mnt/evidence/suspicious.pdf",
+      "sha256": "abc123...",
+      "md5": "def456...",
+      "captured_at": "2024-02-22T14:30:00Z",
+      "file_size": 45632
+    }
+  ]
+}
+```
 
-Rationale: Mobile devices are increasingly important in investigations. These tools provide artifact extraction from modern iOS and Android devices.
+This provides cryptographic proof that the evidence was not modified during analysis.
 
-7. File Carving & Recovery (+5 tools)
-Data recovery and extraction:
+---
 
-foremost - File carving based on headers/footers
-scalpel - Fast file carving
-photorec - File recovery tool
-bulk_extractor - Feature extraction (emails, URLs, credit cards)
-testdisk - Partition and boot sector recovery
+## Feature 2: Cryptographic Signing
 
-Rationale: File carving is essential for recovering deleted files and extracting artifacts from unallocated space.
+### Digital Signatures (Ed25519)
+Sessions can be cryptographically signed to provide tamper-proof audit trails.
 
-8. Hashing & Verification (+4 tools)
-Enhanced integrity verification:
+**How It Works:**
+1. ColdCase generates an Ed25519 keypair for each investigator
+2. Each command entry is hashed and signed
+3. Session can be locked with a final signature
+4. Anyone with the public key can verify integrity
 
-md5deep - Recursive MD5 hashing
-hashdeep - Audit mode hashing and verification
-ssdeep - Fuzzy hashing for similarity analysis
-tlsh - Trend Micro Locality Sensitive Hash
+**Key Management:**
+```
+~/.coldcase/keys/
+├── private.key          # Ed25519 private key (never share)
+├── public.key           # Ed25519 public key (share for verification)
+└── trusted/             # Other investigators' public keys
+    ├── alice.pub
+    └── bob.pub
+```
 
-Rationale: Fuzzy hashing (ssdeep, tlsh) enables identification of similar files and detection of modified malware variants.
+### Command Signatures
+Each logged command includes a signature:
+```json
+{
+  "timestamp": "2024-02-22T14:30:15Z",
+  "command": "pdfid suspicious.pdf",
+  "sha256": "hash_of_command_and_context",
+  "signature": "ed25519:a8f3c2d1b0e9f8a7d6c5b4a3e2f1d0c9b8a7f6e5d4c3b2a1..."
+}
+```
 
-9. Registry & Windows Artifacts (+3 tools)
-Specialized Windows analysis:
+### Session-Level Signature
+When locked or sealed, the entire session receives a final signature:
+```json
+{
+  "session_signature": "ed25519:f9e2b1a0d9c8f7e6b5a4d3c2f1e0b9a8d7c6f5e4b3a2d1c0...",
+  "signed_by": {
+    "investigator": "soham",
+    "email": "soham@forensics-lab.com",
+    "public_key": "ed25519:9d8c7b6a5e4f3d2c1b0a9d8c7b6a5e4f...",
+    "timestamp": "2024-02-22T16:45:00Z"
+  }
+}
+```
 
-regripper - Comprehensive Windows registry analysis
-hivexget - Extract specific registry keys
-reglookup - Low-level registry forensics
+### Verification
+Anyone can verify session integrity:
+```bash
+bin/coldcase session verify case-2024-001
+✓ Session integrity verified
+✓ All commands signed by: soham@forensics-lab.com
+✓ No tampering detected
+✓ Signature date: 2024-02-22 16:45:00 UTC
+```
 
-Rationale: Registry analysis is critical for Windows investigations. RegRipper provides specialized plugins for common forensic scenarios.
+**Tamper Detection:**
+If any command, timestamp, or output is modified, verification fails:
+```bash
+bin/coldcase session verify case-2024-001
+✗ INTEGRITY VIOLATION DETECTED
+✗ Signature verification failed for command #23
+✗ Session data has been tampered with
+```
 
-bin/coldcase plaso parsers --list
-# Shows all available parsers:
-# - mft, prefetch, registry, evtx, lnk, shellbags, userassist, etc.
+### Why Ed25519?
+- **Fast** - Signing and verification are very quick
+- **Small** - 64-byte signatures, 32-byte keys
+- **Secure** - Industry standard (used by Signal, Tor, SSH)
+- **Deterministic** - Same input always produces same signature
+- **Built-in** - Native Go crypto library support
 
-bin/coldcase plaso parse --parser mft disk.img
-bin/coldcase plaso parse --parser prefetch disk.img
-bin/coldcase plaso parse --parser registry disk.img
+---
+
+## Feature 3: Encryption
+
+### AES-256-GCM Encryption
+Sensitive investigations can be encrypted at rest.
+
+**Use Cases:**
+- Government/classified investigations
+- Corporate espionage cases
+- Medical/personal data involved
+- Multi-investigator cases requiring access control
+
+### Encrypted Session Structure
+```
+~/.coldcase/sessions/case-classified/
+├── session.json.enc        # Encrypted session metadata
+├── outputs/
+│   ├── pdfid_001.txt.enc  # Encrypted outputs
+│   ├── hash_002.txt.enc
+│   └── memory_003.txt.enc
+├── session.sig             # Signature (unencrypted, for verification)
+└── .encrypted              # Encryption metadata
+```
+
+### How It Works
+```bash
+# Start encrypted session
+bin/coldcase session start case-classified --encrypt
+Enter encryption passphrase: ********
+Confirm passphrase: ********
+✓ Session created with AES-256-GCM encryption
+✓ All commands and outputs will be encrypted
+
+# Commands run normally
+bin/coldcase pdfid classified.pdf
+[case-classified] ✓ Logged (encrypted)
+
+# Outputs are automatically encrypted
+ls ~/.coldcase/sessions/case-classified/outputs/
+pdfid_001.txt.enc  # Encrypted, cannot read without passphrase
+
+# Export requires passphrase
+bin/coldcase session export case-classified --format html
+Enter decryption passphrase: ********
+✓ Decrypting session...
+✓ Exported to: case-classified-report.html
+```
+
+### Encryption Details
+- **Algorithm:** AES-256-GCM (authenticated encryption)
+- **Key derivation:** PBKDF2 with 100,000 iterations
+- **Authentication:** GCM mode provides built-in tamper detection
+- **Per-file encryption:** Each file encrypted separately with unique nonce
+
+### Security Features
+1. **Passphrase-based** - No key files to manage
+2. **Authenticated** - Tampering is automatically detected
+3. **Forward secure** - Compromising one file doesn't compromise others
+4. **NIST approved** - AES-256-GCM is government-approved
+
+---
+
+## Feature 4: Session States
+
+Sessions can exist in three states: **Unlocked**, **Locked**, and **Sealed**.
+
+### State 1: Unlocked (Active Investigation)
+
+**Characteristics:**
+- ✅ Can add commands
+- ✅ Can modify session
+- ✅ Can delete session
+
+**Usage:**
+```bash
+bin/coldcase session start case-001 --sign
+# Session is unlocked, investigation in progress
+
+bin/coldcase pdfid test.pdf
+bin/coldcase pdf-parser test.pdf
+# Commands being added freely
 ```
 
 ---
 
-## Revised Tool List (Linux-Native Only)
+### State 2: Locked (Temporary Protection)
 
-### Category: Windows Artifact Analysis (+8 tools)
+**Characteristics:**
+- ❌ Cannot add commands
+- ❌ Cannot modify session
+- ✅ Can unlock with private key
+- ✅ Can view session (read-only)
 
-**Registry:**
-1. reglookup
-2. hivexget  
-3. python-registry
+**Use Cases:**
+- Handoff to supervisor for review
+- Pause investigation temporarily
+- Transfer to another investigator
+- Prevent accidental modification
 
-**NTFS/MFT:**
-4. analyzeMFT
-5. INDXParse
-6. ntfsls
-7. ntfscat
+**Locking:**
+```bash
+bin/coldcase session lock case-001
+WARNING: Session will become read-only until unlocked
+Continue? (yes/no): yes
 
-**Plaso Integration:**
-8. plaso (covers registry, mft, prefetch, evtx, lnk, shellbags via modules)
+Locking session...
+✓ Session locked
+✓ Lock signature: ed25519:abc123...
+✓ Locked at: 2024-02-22T16:00:00Z
+
+Session is now READ-ONLY.
+Use 'session unlock' with private key to resume.
+```
+
+**Unlocking:**
+```bash
+bin/coldcase session unlock case-001
+Enter private key passphrase: ********
+✓ Session unlocked
+✓ You can now resume investigation
+```
+
+**Attempting to Modify Locked Session:**
+```bash
+# Try to resume locked session
+bin/coldcase session resume case-001
+ERROR: Session 'case-001' is locked
+Use 'session unlock' with private key to resume investigation
+```
 
 ---
 
-### Alternative: Expand Other Categories Instead
+### State 3: Sealed (Permanent/Final)
 
-If you want to hit 100 tools without Windows-specific stuff, **expand these instead**:
+**Characteristics:**
+- ❌ Cannot add commands
+- ❌ Cannot modify session
+- ❌ **CANNOT UNLOCK** (permanent)
+- ✅ Can view session (read-only)
+- ✅ Generates seal certificate for court
 
-#### Network Forensics (+10 tools)
-```
-1. tshark
-2. tcpdump
-3. zeek (formerly bro)
-4. ngrep
-5. tcpflow
-6. pcapfix
-7. tcpreplay
-8. tcpstat
-9. argus (network flow analysis)
-10. p0f (passive OS fingerprinting)
+**Use Cases:**
+- Final submission to court
+- Archival of completed investigation
+- Legal evidence package
+- End of case closure
+
+**Sealing Process:**
+```bash
+bin/coldcase session seal case-001
+
+⚠️  WARNING: PERMANENT SEAL OPERATION ⚠️
+
+This will PERMANENTLY seal the session. After sealing:
+  ✗ The session CANNOT be unlocked or modified by anyone
+  ✗ No commands can be added
+  ✗ No files can be deleted
+  ✓ The session becomes a final, immutable record
+  ✓ A seal certificate will be generated for legal submission
+
+Are you absolutely sure? Type 'SEAL PERMANENTLY' to confirm: SEAL PERMANENTLY
+
+Generating final seal...
+  ✓ Computing final session hash
+  ✓ Creating Ed25519 seal signature
+  ✓ Generating seal certificate PDF
+  ✓ Marking session as permanently sealed
+
+═══════════════════════════════════════════════════════
+SESSION PERMANENTLY SEALED
+═══════════════════════════════════════════════════════
+
+Session ID:      case-001
+Sealed at:       2024-02-22 18:30:00 UTC
+Commands:        47
+Evidence files:  12
+Final hash:      sha256:abc123def456...
+Seal signature:  ed25519:def456789abc...
+
+Certificate saved to:
+  ~/.coldcase/sessions/case-001/seal-certificate.pdf
+
+This session is now READ-ONLY and CANNOT be unsealed.
+═══════════════════════════════════════════════════════
 ```
 
-#### File Analysis (+8 tools)
-```
-1. file (magic number detection)
-2. foremost (carving)
-3. scalpel (carving)
-4. bulk_extractor
-5. photorec
-6. testdisk
-7. ddrescue
-8. safecopy (data recovery)
+**Seal Certificate (PDF)**
+Auto-generated legal document containing:
+- Session summary (ID, investigator, date range)
+- Investigation statistics (commands executed, evidence analyzed)
+- Cryptographic integrity proof (SHA-256 hash, Ed25519 signature)
+- Investigator's digital signature
+- Verification instructions
+
+**Attempting to Modify Sealed Session:**
+```bash
+bin/coldcase session unlock case-001
+ERROR: Session is permanently sealed and cannot be unlocked
+
+bin/coldcase session resume case-001
+ERROR: Session is permanently sealed and cannot be modified
+
+# Try to add command to sealed session
+bin/coldcase pdfid test.pdf
+ERROR: Active session 'case-001' is sealed and read-only
 ```
 
-#### Steganography & Media (+5 tools)
+---
+
+### State Comparison
+
+| State | Modifiable | Unlockable | Use Case |
+|---|---|---|---|
+| **Unlocked** | ✅ Yes | N/A | Active investigation |
+| **Locked** | ❌ No | ✅ Yes (with key) | Review, handoff, pause |
+| **Sealed** | ❌ No | ❌ Never | Court submission, archive |
+
+### State Transitions
+
 ```
-1. steghide
-2. stegdetect
-3. zsteg
-4. exiftool (already have)
-5. mediainfo (video/audio metadata)
+Unlocked ←→ Locked → Sealed
+   ↓                    ↓
+ Active            [PERMANENT]
+                   READ-ONLY
 ```
 
-#### Hashing & Checksums (+7 tools)
-```
-1. md5sum
-2. sha256sum
-3. md5deep
-4. hashdeep
-5. ssdeep (fuzzy)
-6. tlsh (fuzzy)
-7. imphash (PE import hash)
+**Valid Transitions:**
+- Unlocked → Locked (reversible)
+- Locked → Unlocked (with private key)
+- Unlocked → Sealed (irreversible)
+- Locked → Sealed (irreversible)
+
+**Invalid Transitions:**
+- Sealed → Unlocked (cannot unseal)
+- Sealed → Locked (cannot unseal)
+
+---
+
+## Feature 5: Advanced Sealing Options
+
+### Maximum Security Seal (Encrypted + Destroy Key)
+
+For highly classified cases where even the investigator should not have access after case closure:
+
+```bash
+bin/coldcase session seal case-classified --destroy-key
+
+⚠️  MAXIMUM SECURITY SEAL ⚠️
+
+This will:
+  1. Permanently seal the session (read-only forever)
+  2. Export final unencrypted report to PDF
+  3. DESTROY the encryption key
+  
+After this operation:
+  ✓ Exported report remains readable
+  ✗ Encrypted session cannot be decrypted by anyone (including you)
+
+Continue? Type 'DESTROY KEY' to confirm: DESTROY KEY
+
+  ✓ Exporting final unencrypted report...
+  ✓ Saved to: case-classified-final-report.pdf
+  ✓ Sealing session permanently...
+  ✓ DESTROYING encryption key...
+  
+⚠️  ENCRYPTION KEY DESTROYED
+  
+Encrypted session files remain as tamper-proof archive
+but can no longer be decrypted.
+
+IMPORTANT: Save the exported report immediately!
+  Location: ~/.coldcase/sessions/case-classified/final-report.pdf
 ```
 
-#### System Utilities (+6 tools)
+### Seal with Timestamp Authority
+
+For legal-grade timestamping (proves when evidence was sealed):
+
+```bash
+bin/coldcase session seal case-001 --timestamp-server https://freetsa.org/tsr
+
+Sealing session with RFC 3161 timestamp...
+  ✓ Contacting timestamp authority: freetsa.org
+  ✓ Timestamp token received
+  ✓ Session sealed at: 2024-02-22T18:30:00Z
+  ✓ Timestamp signature valid
+
+Verification will now prove this session existed at this specific time.
 ```
-1. strings
-2. xxd (hex dump)
-3. objdump (binary analysis)
-4. readelf (ELF analysis)
-5. nm (symbol listing)
-6. ldd (shared library dependencies)
+
+**Verification with Timestamp:**
+```bash
+bin/coldcase session verify case-001
+✓ Session signature valid
+✓ Timestamp authority: FreeTSA
+✓ Timestamp: 2024-02-22T18:30:00Z
+✓ Timestamp signature: VALID
+✓ No tampering detected
+```
+
+---
+
+## Session Management Workflows
+
+### Workflow 1: Basic Investigation
+
+```bash
+# Start investigation
+eval $(bin/coldcase session start malware-2024-pdf)
+
+# Analyze evidence
+bin/coldcase pdfid suspicious.pdf
+bin/coldcase pdf-parser suspicious.pdf
+bin/coldcase hash suspicious.pdf
+
+# Stop session when done
+eval $(bin/coldcase session stop)
+```
+
+---
+
+### Workflow 2: Signed Investigation (Forensic Soundness)
+
+```bash
+# Start with signing enabled
+eval $(bin/coldcase session start case-2024-001 --sign)
+
+# Investigate
+bin/coldcase windows.pslist -f memory.dmp
+bin/coldcase windows.dlllist -f memory.dmp
+
+# Lock for review
+bin/coldcase session lock case-2024-001
+
+# Supervisor reviews (read-only)
+bin/coldcase session export case-2024-001 --format html
+
+# Unlock and continue
+bin/coldcase session unlock case-2024-001
+eval $(bin/coldcase session resume case-2024-001)
+
+# More investigation
+bin/coldcase windows.handles -f memory.dmp
+
+# Final seal for court
+bin/coldcase session seal case-2024-001
+```
+
+---
+
+### Workflow 3: Encrypted Sensitive Case
+
+```bash
+# Start encrypted + signed
+eval $(bin/coldcase session start classified-2024 --encrypt --sign)
+Enter encryption passphrase: ********
+
+# All commands/outputs automatically encrypted
+bin/coldcase pdfid classified.pdf
+bin/coldcase hash evidence.bin
+
+# Export requires passphrase
+bin/coldcase session export classified-2024 --format pdf
+Enter passphrase: ********
+
+# Seal and destroy key (maximum security)
+bin/coldcase session seal classified-2024 --destroy-key
+```
+
+---
+
+### Workflow 4: Parallel Investigations
+
+```bash
+# Terminal 1 - PDF Investigation
+eval $(bin/coldcase session start pdf-malware-2024 --sign)
+bin/coldcase pdfid suspicious.pdf
+bin/coldcase pdf-parser suspicious.pdf
+
+# Terminal 2 - Memory Analysis (simultaneously)
+eval $(bin/coldcase session start memory-dump-2024 --sign)
+bin/coldcase windows.pslist -f memory.dmp
+bin/coldcase windows.dlllist -f memory.dmp
+
+# Terminal 3 - Disk Forensics (simultaneously)
+eval $(bin/coldcase session start disk-image-2024 --sign)
+bin/coldcase fls -r disk.img
+bin/coldcase fsstat disk.img
+
+# All three investigations running in parallel!
+# Each properly logged to separate sessions
+```
+
+---
+
+### Workflow 5: Multi-Investigator Handoff
+
+```bash
+# Investigator A starts case
+eval $(bin/coldcase session start case-2024-001 --sign)
+bin/coldcase pdfid evidence.pdf
+bin/coldcase pdf-parser evidence.pdf
+
+# Lock for transfer
+bin/coldcase session lock case-2024-001
+
+# Transfer to Investigator B
+# Investigator B imports A's public key
+bin/coldcase keys import alice.pub
+
+# Verify A's work
+bin/coldcase session verify case-2024-001
+✓ All commands signed by: alice@forensics-lab.com
+✓ No tampering detected
+
+# B unlocks and continues (if authorized)
+bin/coldcase session unlock case-2024-001
+eval $(bin/coldcase session resume case-2024-001)
+bin/coldcase hash evidence.pdf
+
+# Final seal by Investigator B
+bin/coldcase session seal case-2024-001
+```
+
+---
+
+## Command Reference
+
+### Session Management
+
+```bash
+# Start new session
+eval $(bin/coldcase session start <session-id> [--sign] [--encrypt])
+
+# Resume existing session
+eval $(bin/coldcase session resume <session-id>)
+
+# Stop active session (terminal only, data preserved)
+eval $(bin/coldcase session stop)
+
+# List all sessions
+bin/coldcase session list
+
+# Show current terminal's active session
+bin/coldcase session status
+
+# Show detailed session info
+bin/coldcase session info <session-id>
+```
+
+### Session States
+
+```bash
+# Lock session (reversible)
+bin/coldcase session lock <session-id>
+
+# Unlock session (requires private key)
+bin/coldcase session unlock <session-id>
+
+# Seal permanently (irreversible)
+bin/coldcase session seal <session-id>
+
+# Seal with timestamp authority
+bin/coldcase session seal <session-id> --timestamp-server <url>
+
+# Seal encrypted session and destroy key
+bin/coldcase session seal <session-id> --destroy-key
+```
+
+### Verification & Export
+
+```bash
+# Verify session integrity
+bin/coldcase session verify <session-id>
+
+# Export session
+bin/coldcase session export <session-id> --format <format>
+# Formats: json, html, pdf, csv, markdown
+
+# View sealed session (read-only)
+bin/coldcase session view <session-id>
+```
+
+### Key Management
+
+```bash
+# Generate Ed25519 keypair
+bin/coldcase keys generate
+
+# Export public key for sharing
+bin/coldcase keys export-public
+
+# Import another investigator's public key
+bin/coldcase keys import <public-key-file>
+
+# List trusted keys
+bin/coldcase keys list
+```
+
+---
+
+## Export Formats
+
+### JSON Export
+Machine-readable format for programmatic analysis:
+```bash
+bin/coldcase session export case-001 --format json
+```
+
+**Output:**
+```json
+{
+  "session_id": "case-001",
+  "investigator": "soham",
+  "created": "2024-02-22T14:30:00Z",
+  "sealed": true,
+  "signed": true,
+  "commands": [...],
+  "evidence_files": [...],
+  "signature": "ed25519:..."
+}
+```
+
+### HTML Export
+Human-readable investigation report:
+```bash
+bin/coldcase session export case-001 --format html
+```
+
+Generates interactive HTML report with:
+- Session summary
+- Command timeline
+- Evidence file hashes
+- Tool output previews
+- Signature verification status
+
+### PDF Export
+Court-ready documentation:
+```bash
+bin/coldcase session export case-001 --format pdf
+```
+
+Professional PDF report including:
+- Investigation header with metadata
+- Chronological command listing
+- Evidence integrity verification
+- Digital signature certificate
+- Investigator attribution
+
+### CSV Export
+Spreadsheet-compatible timeline:
+```bash
+bin/coldcase session export case-001 --format csv
+```
+
+Columns: timestamp, command, tool, input_files, exit_code, duration_ms
+
+### Markdown Export
+Technical documentation:
+```bash
+bin/coldcase session export case-001 --format markdown
+```
+
+Clean markdown suitable for wikis, GitHub, technical reports.
+
+---
+
+## Storage Locations
+
+```
+~/.coldcase/
+├── config.yaml                 # Global configuration
+├── active-session.json         # Current terminal's session state
+├── keys/
+│   ├── private.key            # Ed25519 private key
+│   ├── public.key             # Ed25519 public key
+│   └── trusted/               # Other investigators' keys
+│       ├── alice.pub
+│       └── bob.pub
+├── sessions/
+│   ├── case-2024-001/
+│   │   ├── session.json       # Session metadata & command log
+│   │   ├── outputs/           # All tool outputs
+│   │   │   ├── pdfid_001.txt
+│   │   │   ├── pdf-parser_002.txt
+│   │   │   └── hash_003.txt
+│   │   ├── evidence-hashes.json
+│   │   ├── session.sig        # Signatures
+│   │   ├── .locked            # Lock metadata (if locked)
+│   │   ├── .sealed            # Seal metadata (if sealed)
+│   │   └── seal-certificate.pdf
+│   ├── case-2024-002/
+│   │   ├── session.json.enc   # Encrypted session
+│   │   ├── outputs/
+│   │   │   └── *.enc          # Encrypted outputs
+│   │   └── session.sig
+│   └── temp/                  # Temporary logs (auto-delete)
+│       └── 2024-02-22.log
+└── logs/
+    └── coldcase.log           # Global application log
+```
+
+---
+
+## Configuration
+
+### Global Config File
+`~/.coldcase/config.yaml`
+
+```yaml
+# Session Management
+session:
+  mode: casual                 # casual | aware | strict | disabled
+  show_prompts: false          # Don't nag about sessions
+  temp_log_ttl: 7              # Auto-delete temp logs after N days
+  
+  # Display settings
+  display:
+    show_in_output: false      # Don't clutter output with session info
+    show_in_verbose: true      # Show session info with -v flag
+    format: prefix             # prefix | header | footer | none
+  
+  # Strict mode
+  require_session: false       # Don't force sessions
+  allow_no_session: true       # Allow --no-session flag
+  
+  # Stale detection
+  stale_timeout: 24h           # Mark stale after N hours
+  auto_cleanup: true           # Auto-close stale sessions
+
+# Cryptography
+crypto:
+  signing:
+    algorithm: ed25519         # Digital signature algorithm
+    key_path: "~/.coldcase/keys/private.key"
+  
+  encryption:
+    algorithm: aes-256-gcm     # Encryption algorithm
+    pbkdf2_iterations: 100000  # Key derivation iterations
+  
+  timestamp:
+    enabled: false             # RFC 3161 timestamping
+    server: ""                 # Timestamp authority URL
+
+# Logging
+logging:
+  level: info                  # debug | info | warn | error
+  format: json                 # json | text
+  output: "~/.coldcase/logs/coldcase.log"
+  
+# Export
+export:
+  default_format: html         # Default export format
+  include_outputs: true        # Include tool outputs in exports
+  max_output_size: 1048576     # Max output size in bytes (1MB)
+```
+
+---
+
+## Security Considerations
+
+### Private Key Protection
+- Store private keys securely (`~/.coldcase/keys/private.key`)
+- Use passphrase protection for private keys
+- Never share private keys
+- Back up private keys to secure location
+- Consider hardware security modules (HSM) for production
+
+### Encryption Passphrases
+- Use strong passphrases (20+ characters)
+- Store passphrases in password manager
+- Consider key escrow for organizational requirements
+- Document key recovery procedures
+
+### Network Security
+- RFC 3161 timestamp servers use HTTPS
+- Validate timestamp authority certificates
+- Consider running local timestamp server for airgapped environments
+
+### Access Control
+- Set appropriate file permissions on session directories
+- Restrict access to `~/.coldcase/` directory
+- Use full disk encryption for investigation workstations
+- Log all access to sealed sessions
+
+---
+
+## Legal & Compliance
+
+### Chain of Custody
+ColdCase session management provides:
+- ✅ Complete command history with timestamps
+- ✅ Evidence file integrity verification (hashes)
+- ✅ Investigator attribution (digital signatures)
+- ✅ Tamper detection (cryptographic verification)
+- ✅ Read-only archival (sealed sessions)
+
+### Court Admissibility
+- Digital signatures meet legal requirements for authentication
+- RFC 3161 timestamps provide legally recognized time proof
+- Seal certificates document forensic procedure
+- Audit logs support investigator testimony
+
+### Compliance Standards
+- **NIST** - Uses NIST-approved cryptography (AES-256, Ed25519)
+- **ISO 27037** - Follows digital evidence handling guidelines
+- **ACPO** - Meets UK forensic principles
+- **SWGDE** - Aligns with Scientific Working Group recommendations
+
+---
+
+## Best Practices
+
+### Starting Investigations
+1. Always start a named session for formal investigations
+2. Use `--sign` flag for cases that may go to court
+3. Use `--encrypt` for sensitive/classified cases
+4. Document case context in session ID (e.g., `case-2024-ransomware-incident`)
+
+### During Investigation
+1. Let ColdCase auto-log all commands (don't use `--no-session`)
+2. Review session periodically: `bin/coldcase session info`
+3. Lock sessions before handoff or breaks
+4. Back up session data regularly
+
+### Closing Investigations
+1. Export final reports before sealing
+2. Use `seal` (not just `lock`) for completed cases
+3. Generate seal certificate for legal submission
+4. Verify session integrity before archival
+5. Store sealed sessions in long-term evidence storage
+
+### Multi-Investigator Cases
+1. Share public keys at case start
+2. Verify signatures when receiving handoff
+3. Document investigator transitions in case notes
+4. Use session locking for clean handoffs
+
+### Encrypted Cases
+1. Document passphrase recovery procedure
+2. Consider key escrow for organizational cases
+3. Export unencrypted report before `--destroy-key`
+4. Test decryption before sealing
+
+---
+
+## Troubleshooting
+
+### Session Not Active in New Terminal
+**Problem:** Opened new terminal, commands not logged to session
+
+**Solution:**
+```bash
+# Resume the session in new terminal
+eval $(bin/coldcase session resume case-001)
+```
+
+### Cannot Unlock Locked Session
+**Problem:** `session unlock` fails
+
+**Causes:**
+- Wrong private key passphrase
+- Private key missing/corrupted
+- Session sealed (not locked)
+
+**Solution:**
+```bash
+# Check session state
+bin/coldcase session info case-001
+
+# If sealed, cannot unlock (permanent)
+# If locked, verify private key
+bin/coldcase keys list
+```
+
+### Encrypted Session Export Fails
+**Problem:** Cannot decrypt session for export
+
+**Solution:**
+```bash
+# Verify passphrase
+bin/coldcase session export case-001 --format json
+# Enter correct passphrase when prompted
+
+# If passphrase lost and key destroyed, recovery impossible
+# Always export before using --destroy-key
+```
+
+### Signature Verification Fails
+**Problem:** `session verify` reports tampering
+
+**Causes:**
+- Session data actually tampered with
+- Corrupted session files
+- Wrong public key for verification
+
+**Solution:**
+```bash
+# Check which key signed it
+bin/coldcase session info case-001
+
+# Import correct public key
+bin/coldcase keys import investigator.pub
+
+# Verify again
+bin/coldcase session verify case-001
+```
+
+---
+
+## Performance Considerations
+
+### Session Overhead
+- Logging adds ~5-10ms per command (negligible)
+- Signing adds ~1-2ms per command
+- Encryption adds ~5-15ms depending on output size
+- Total overhead: <1% for typical forensic operations (>5 seconds)
+
+### Storage Requirements
+- Typical session: 10-50 MB (with outputs)
+- Encrypted session: ~10% larger (AES overhead)
+- Signed session: +64 bytes per command (signatures)
+- Large investigations: Plan for 1-10 GB
+
+### Scalability
+- Thousands of commands per session supported
+- Hundreds of concurrent sessions supported
+- Verification scales linearly with command count
+- Export performance depends on output size
+
+---
+
+## Conclusion
+
+ColdCase's session management system provides forensically sound, cryptographically verified audit trails for digital investigations. By combining automatic logging, digital signatures, encryption, and permanent sealing, investigators can conduct analyses with confidence that their work meets legal standards for chain of custody and evidence integrity.
+
+The per-terminal session model enables flexible, parallel workflows while maintaining complete audit trails. Whether conducting routine malware triage or high-stakes legal investigations, ColdCase ensures every action is documented, verifiable, and admissible.
+
+---
+

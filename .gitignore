@@ -1,0 +1,17 @@
+# Build artifacts
+bin/
+coldcase
+
+# Session data & Keys
+.coldcase/
+sess_env
+report.md
+report.html
+
+# Documentation & Logs
+todo.txt
+demo.tape
+*.log
+
+# Go dependencies
+vendor/

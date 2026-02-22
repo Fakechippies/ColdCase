@@ -1,11 +1,7 @@
 // Package exiftool integrates ExifTool for metadata extraction.
 package exiftool
 
-import (
-	"fmt"
-
-	"coldcase/pkg/tools"
-)
+import "coldcase/pkg/runner"
 
 // ExifTool wraps the exiftool binary.
 type ExifTool struct{}
@@ -23,8 +19,8 @@ func (e *ExifTool) Description() string {
 
 // Run invokes exiftool with the provided arguments.
 func (e *ExifTool) Run(args []string) error {
-	if !tools.CheckToolInstalled("exiftool") {
-		return fmt.Errorf("exiftool is not installed")
-	}
-	return tools.ExecuteCommand("exiftool", args...)
+	return runner.Run(runner.RunOpts{
+		Binary: "exiftool",
+		Args:   args,
+	})
 }
