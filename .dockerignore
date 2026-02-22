@@ -1,0 +1,10 @@
+.git
+bin/
+*.dmp
+*.raw
+*.img
+*.iso
+*.vmem
+*.mem
+*.E01
+*.dd

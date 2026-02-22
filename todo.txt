@@ -1,0 +1,179 @@
+2. Volatility3 Plugin Expansion (+10 tools)
+Additional commonly-used Volatility3 plugins:
+
+windows.malfind - Detect code injection and memory anomalies
+windows.mutantscan - Scan for mutexes (malware indicators)
+windows.ssdt - System Service Descriptor Table analysis
+windows.getsids - Extract Security Identifiers
+windows.privs - List process privileges
+windows.vadinfo - Virtual Address Descriptor information
+windows.dumpfiles - Extract files from memory
+windows.mftscan - Scan for MFT entries in memory
+linux.mount_info - Linux mount point information
+mac.mount_info - macOS mount point information
+
+Rationale: Expands memory forensics capabilities for malware detection and advanced system analysis.
+
+3. Timeline & Log Analysis (+5 tools)
+Essential for incident reconstruction:
+
+plaso (log2timeline) - Multi-source timeline generation
+hayabusa - Windows event log threat hunting
+evtx_dump - EVTX file parsing and conversion
+mactime - Timeline generation from bodyfile
+chainsaw - Windows event log analysis and sigma detection
+
+Rationale: Timeline analysis is critical for incident response. These tools enable comprehensive temporal correlation across multiple evidence sources.
+
+4. Network Forensics (+6 tools)
+Currently missing from ColdCase:
+
+tshark - Command-line Wireshark for PCAP analysis
+tcpdump - Packet capture and analysis
+zeek - Network security monitoring and analysis
+ngrep - Network packet grep
+networkminer-cli - Network forensic analysis (if CLI available)
+pcapfix - Repair corrupted PCAP files
+
+Rationale: Network forensics is a major investigation domain. Adding these tools provides coverage for packet analysis, protocol decoding, and network-based incident response.
+
+5. Malware & Pattern Matching (+5 tools)
+Enhanced malware analysis capabilities:
+
+yara - Pattern matching and malware classification
+floss - Automatic string deobfuscation (FireEye Labs)
+strings - Extract printable strings from binaries
+capa - Detect malware capabilities automatically
+virustotal-cli - VirusTotal API wrapper for hash/file checking
+
+Rationale: YARA is industry-standard for malware detection. Combined with automated capability analysis (capa) and deobfuscation (floss), this provides comprehensive malware triage.
+
+6. Mobile Forensics (+4 tools)
+iOS and Android artifact extraction:
+
+aleapp - Android Logs Events And Protobuf Parser
+ileapp - iOS Logs Events And Plists Parser
+adb - Android Debug Bridge for device interaction
+ideviceinfo - iOS device information extraction
+
+Rationale: Mobile devices are increasingly important in investigations. These tools provide artifact extraction from modern iOS and Android devices.
+
+7. File Carving & Recovery (+5 tools)
+Data recovery and extraction:
+
+foremost - File carving based on headers/footers
+scalpel - Fast file carving
+photorec - File recovery tool
+bulk_extractor - Feature extraction (emails, URLs, credit cards)
+testdisk - Partition and boot sector recovery
+
+Rationale: File carving is essential for recovering deleted files and extracting artifacts from unallocated space.
+
+8. Hashing & Verification (+4 tools)
+Enhanced integrity verification:
+
+md5deep - Recursive MD5 hashing
+hashdeep - Audit mode hashing and verification
+ssdeep - Fuzzy hashing for similarity analysis
+tlsh - Trend Micro Locality Sensitive Hash
+
+Rationale: Fuzzy hashing (ssdeep, tlsh) enables identification of similar files and detection of modified malware variants.
+
+9. Registry & Windows Artifacts (+3 tools)
+Specialized Windows analysis:
+
+regripper - Comprehensive Windows registry analysis
+hivexget - Extract specific registry keys
+reglookup - Low-level registry forensics
+
+Rationale: Registry analysis is critical for Windows investigations. RegRipper provides specialized plugins for common forensic scenarios.
+
+bin/coldcase plaso parsers --list
+# Shows all available parsers:
+# - mft, prefetch, registry, evtx, lnk, shellbags, userassist, etc.
+
+bin/coldcase plaso parse --parser mft disk.img
+bin/coldcase plaso parse --parser prefetch disk.img
+bin/coldcase plaso parse --parser registry disk.img
+```
+
+---
+
+## Revised Tool List (Linux-Native Only)
+
+### Category: Windows Artifact Analysis (+8 tools)
+
+**Registry:**
+1. reglookup
+2. hivexget  
+3. python-registry
+
+**NTFS/MFT:**
+4. analyzeMFT
+5. INDXParse
+6. ntfsls
+7. ntfscat
+
+**Plaso Integration:**
+8. plaso (covers registry, mft, prefetch, evtx, lnk, shellbags via modules)
+
+---
+
+### Alternative: Expand Other Categories Instead
+
+If you want to hit 100 tools without Windows-specific stuff, **expand these instead**:
+
+#### Network Forensics (+10 tools)
+```
+1. tshark
+2. tcpdump
+3. zeek (formerly bro)
+4. ngrep
+5. tcpflow
+6. pcapfix
+7. tcpreplay
+8. tcpstat
+9. argus (network flow analysis)
+10. p0f (passive OS fingerprinting)
+```
+
+#### File Analysis (+8 tools)
+```
+1. file (magic number detection)
+2. foremost (carving)
+3. scalpel (carving)
+4. bulk_extractor
+5. photorec
+6. testdisk
+7. ddrescue
+8. safecopy (data recovery)
+```
+
+#### Steganography & Media (+5 tools)
+```
+1. steghide
+2. stegdetect
+3. zsteg
+4. exiftool (already have)
+5. mediainfo (video/audio metadata)
+```
+
+#### Hashing & Checksums (+7 tools)
+```
+1. md5sum
+2. sha256sum
+3. md5deep
+4. hashdeep
+5. ssdeep (fuzzy)
+6. tlsh (fuzzy)
+7. imphash (PE import hash)
+```
+
+#### System Utilities (+6 tools)
+```
+1. strings
+2. xxd (hex dump)
+3. objdump (binary analysis)
+4. readelf (ELF analysis)
+5. nm (symbol listing)
+6. ldd (shared library dependencies)
