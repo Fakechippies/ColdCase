@@ -1,324 +1,65 @@
-# Project Structure
+# ColdCase: Investigation Suite Structure
 
-This document explains the architecture and structure of the ColdCase digital forensics tool.
+Investigation Suite ColdCase is a unified CLI toolkit for digital forensics, integrating 118+ utilities into a cohesive, cryptographically secured environment.
 
-## File Organization
+## 4-Level Architectural Framework
+
+ColdCase follows a rigid layered architecture to decouple tool logic from the execution runtime and ensure forensic soundness.
+
+### Level 1: User Interface (`cmd/coldcase/`)
+The primary entry point built using the **Cobra** CLI framework. It provides a standardized command syntax for all categories, handling argument validation and global flags (e.g., `--container`, `--sign`).
+
+### Level 2: Core Orchestrator (`pkg/session/`, `pkg/crypto/`)
+The central control unit managing:
+- **Session States**: Transitioning between `Unlocked` (preparation), `Locked` (active analysis), and `Sealed` (final report) states.
+- **Security**: Adherence to **NIST SP 800-38D** using **AES-256-GCM** for audit log encryption and **Ed25519** for cryptographic signing of every action to maintain chain-of-custody.
+
+### Level 3: Tool Proxy Layer (`pkg/[category]/`)
+A collection of 14+ category-specific modules (e.g., `pkg/memory`, `pkg/malware`, `pkg/network`). 
+- Each tool is wrapped in a **Tool Proxy** that implements a standard interface.
+- Includes logic for argument parsing, path detection, and potential host-to-container path remapping.
+
+### Level 4: Hybrid Execution Engine (`pkg/runner/`)
+The execution runtime that transparently handles:
+- **Native Execution**: Direct process spawning using `os/exec` if the tool exists on the host.
+- **Containerized Execution**: Automatic fallback to Docker/Podman if the tool is missing.
+- **Smart Path Mapping**: Detecting host filesystem paths in command arguments and automatically generating `-v` bind-mounts for the container.
+
+---
+
+## Directory Breakdown
 
 ```
 ColdCase/
-├── main.go              # Entry point and command initialization
-├── go.mod              # Go module definition
-├── go.sum              # Go module dependencies
-├── didier.go           # DidierStevens Suite integration
-├── exiftool.go         # ExifTool integration
-├── binwalk.go          # Binwalk integration
-├── sleuthkit.go        # Sleuth Kit integration
-├── volatility3.go       # Volatility3 memory forensics integration
-├── utils.go            # Utility commands (list, check)
-├── dependencies.go     # Dependency management and installation
-├── platform.go         # Platform-specific setup and information
-├── STRUCTURE           # This file
-├── README.md           # Project documentation
-├── LICENSE             # Project license
-├── bin/                # Compiled binaries directory
-├── images/             # Project images and documentation
-├── DidierStevensSuite/ # External Python tools directory
-│   ├── 1768.py
-│   ├── amsiscan.py
-│   ├── pdf-parser.py
-│   ├── pdfid.py
-│   ├── oledump.py
-│   ├── pecheck.py
-│   ├── base64dump.py
-│   ├── emldump.py
-│   ├── jpegdump.py
-│   ├── hash.py
-│   ├── cut-bytes.py
-│   ├── find-file-in-file.py
-│   ├── byte-stats.py
-│   ├── extractscripts.py
-│   ├── cs-parse-traffic.py
-│   └── [140+ additional Python scripts...]
-└── volatility3/         # Volatility3 memory forensics framework
-    ├── vol.py          # Main Volatility3 entry point
-    ├── volshell.py     # Interactive Volatility shell
-    ├── volatility3/    # Volatility3 Python package
-    ├── development/    # Development tools and scripts
-    ├── doc/           # Documentation
-    ├── test/          # Test suite
-    ├── pyproject.toml # Python project configuration
-    ├── README.md      # Volatility3 documentation
-    └── LICENSE.txt    # Volatility3 license
+├── cmd/
+│   └── coldcase/          # Entry point and CLI command registration
+├── pkg/
+│   ├── runner/            # Hybrid Execution Engine & Path Mapping
+│   ├── session/           # Forensic Session Management (State Control)
+│   ├── crypto/            # AES-256-GCM & Ed25519 implementation
+│   ├── tools/             # Base interfaces and registry
+│   ├── [category]/        # Tool Proxy modules (steg, memory, malware, etc.)
+│   └── ... 
+├── DidierStevensSuite/    # Embedded external Python utilities
+├── volatility3/           # Integrated memory forensics framework
+├── Diagrams/              # Architectural and Performance visualizations
+├── bin/                   # Build artifacts
+├── Dockerfile             # Forensics-on-demand container definition
+├── STRUCTURE              # This file
+└── README.md              # Project overview and usage guide
 ```
 
-## Core Architecture
+## Forensic Soundness & Compliance
 
-### Interface Design
+- **Audit Logging**: Every command execution, including its input parameters and output hashes, is recorded.
+- **NIST Adherence**: All session metadata is secured with **AES-256-GCM** authenticated encryption.
+- **Non-Repudiation**: Investigator actions are signed with an Ed25519 private key, ensuring that the audit trail is untampered.
+- **Chain of Custody**: The `seal` command cryptographically binds the entire session history into a read-only bundle.
 
-The tool uses a common `Tool` interface for all integrated tools:
+## Technical Summary
 
-```go
-type Tool interface {
-    Name() string
-    Description() string
-    Run(args []string) error
-}
-```
-
-Each tool implementation:
-- Implements the `Tool` interface
-- Handles its own error checking and validation
-- Executes external commands as subprocesses
-- Provides clear error messages
-
-### Command Registration
-
-Commands are dynamically registered using the Cobra CLI framework:
-
-1. **Initialization**: `main.go` calls `init()` functions
-2. **Tool Registration**: Each module (didier.go, exiftool.go, etc.) registers its commands
-3. **Cobra Integration**: Commands are added to `rootCmd` 
-4. **Execution**: Cobra handles argument parsing and command routing
-
-### Module Structure
-
-#### main.go
-- Entry point and CLI initialization
-- Common utility functions (`executeCommand`, `checkToolInstalled`)
-- Root command setup with Cobra
-
-#### didier.go
-```go
-type DidierStevensTool struct {
-    name        string
-    scriptPath  string
-    description string
-}
-```
-- Implements DidierStevens Suite tools
-- Manages Python script execution
-- Path resolution to `./DidierStevensSuite/`
-
-#### exiftool.go
-```go
-type ExifTool struct{}
-```
-- Wraps ExifTool binary execution
-- Validates ExifTool installation
-- Passes arguments directly to ExifTool
-
-#### binwalk.go
-```go
-type BinwalkTool struct{}
-```
-- Wraps Binwalk binary execution
-- Firmware analysis interface
-
-#### sleuthkit.go
-```go
-type SleuthKitTool struct {
-    tool string  // "fls", "fsstat", "istat", etc.
-}
-```
-- Manages multiple Sleuth Kit tools
-- Dynamic tool name assignment
-- Common interface for all Sleuth Kit utilities
-
-#### volatility3.go
-```go
-type Volatility3Tool struct {
-    name        string
-    description string
-    command     string
-}
-```
-- Integrates Volatility3 memory forensics framework
-- Supports Windows, Linux, and macOS memory analysis
-- Provides 18+ memory analysis commands
-- Manages Python dependency execution
-
-#### utils.go
-- Built-in utility commands (`list`, `check`)
-- Tool availability checking
-- Comprehensive help system
-
-#### dependencies.go
-- Cross-platform dependency installation
-- Python package management (pip/uv support)
-- System package manager detection
-- Dependency verification and updates
-
-#### platform.go
-- Platform detection and setup guidance
-- OS-specific installation instructions
-- Package manager identification
-- Platform-specific memory analysis notes
-
-## Execution Flow
-
-### Command Execution
-1. User runs: `./bin/coldcase <tool> [arguments]`
-2. Cobra parses command and arguments
-3. Corresponding tool's `Run()` method is called
-4. Tool validates prerequisites (binary/script availability)
-5. External command is executed with provided arguments
-6. Output is streamed directly to user's stdout/stderr
-
-### Error Handling
-- Tool availability checked before execution
-- Clear error messages for missing dependencies
-- Proper exit codes for script failures
-- Graceful handling of missing files/arguments
-
-## Integration Patterns
-
-### External Binary Integration
-For tools like ExifTool, Binwalk, and Sleuth Kit:
-```go
-func (e *ExifTool) Run(args []string) error {
-    if !checkToolInstalled("exiftool") {
-        return fmt.Errorf("exiftool is not installed")
-    }
-    return executeCommand("exiftool", args...)
-}
-```
-
-### Python Script Integration
-For DidierStevens Suite tools:
-```go
-func (d *DidierStevensTool) Run(args []string) error {
-    if !checkToolInstalled("python3") {
-        return fmt.Errorf("python3 is required")
-    }
-    if _, err := os.Stat(d.scriptPath); os.IsNotExist(err) {
-        return fmt.Errorf("script %s not found", d.scriptPath)
-    }
-    
-    cmdArgs := []string{d.scriptPath}
-    cmdArgs = append(cmdArgs, args...)
-    return executeCommand("python3", cmdArgs...)
-}
-```
-
-## Adding New Tools
-
-### Step 1: Create Tool Implementation
-Create a new Go file (e.g., `newtool.go`):
-```go
-type NewTool struct{}
-
-func (n *NewTool) Name() string {
-    return "newtool"
-}
-
-func (n *NewTool) Description() string {
-    return "Description of the new tool"
-}
-
-func (n *NewTool) Run(args []string) error {
-    // Implementation
-}
-```
-
-### Step 2: Add Command Registration
-```go
-func addNewToolCommand() {
-    newTool := &NewTool{}
-    
-    cmd := &cobra.Command{
-        Use:   newTool.Name(),
-        Short: newTool.Description(),
-        Run: func(cmd *cobra.Command, args []string) {
-            if err := newTool.Run(args); err != nil {
-                fmt.Printf("Error: %v\n", err)
-                os.Exit(1)
-            }
-        },
-    }
-    rootCmd.AddCommand(cmd)
-}
-```
-
-### Step 3: Register in main.go
-Add `addNewToolCommand()` to the `init()` function in `main.go`.
-
-### Step 4: Update Help System
-Update `listTools()` in `utils.go` to include the new tool in the `list` command output.
-
-### Step 5: Update Dependencies (Optional)
-If the new tool requires additional dependencies:
-- Update dependency checking in `dependencies.go`
-- Add platform-specific installation instructions in `platform.go`
-- Update dependency lists and installation commands
-
-## Design Benefits
-
-### Modular Architecture
-- Each tool type in separate file
-- Clean interface abstraction
-- Easy to maintain and extend
-- Minimal coupling between components
-
-### Unified Interface
-- Consistent command structure
-- Common help system
-- Centralized error handling
-- Streamlined user experience
-
-### Cross-Platform Support
-- Automatic platform detection
-- Package manager identification
-- OS-specific installation guides
-- Multi-platform memory analysis
-
-### Dependency Management
-- Automated dependency installation
-- Multiple package manager support
-- Python environment management (pip/uv)
-- Comprehensive dependency verification
-
-### Flexibility
-- Easy to add new tool categories
-- Support for binary, script, and Python package integration
-- Extensible tool validation system
-- Configurable tool discovery
-
-### Performance
-- Lightweight Go binary
-- Direct command execution without overhead
-- Streaming output for large operations
-- Minimal memory footprint
-
-## New Features Added
-
-### Dependency Management System
-- **`install` command**: Automated installation of all dependencies
-- **`deps` subcommands**: Install, check, and update Python dependencies
-- **Cross-platform support**: Detects apt, dnf, yum, pacman, brew, choco, winget
-- **UV integration**: Optional faster Python package management
-
-### Platform Support
-- **`platform` command**: Display platform-specific setup instructions
-- **OS detection**: Automatic Linux, macOS, Windows identification
-- **Distribution detection**: Ubuntu/Debian, Fedora/RHEL, Arch Linux recognition
-- **Memory analysis guidance**: Platform-specific forensics workflows
-
-### Memory Forensics Integration
-- **Volatility3 integration**: Complete memory forensics framework
-- **18+ memory commands**: Windows, Linux, macOS analysis tools
-- **Process analysis**: pslist, pstree, dlllist, handles, cmdline
-- **Registry and file analysis**: registry.scan, filescan, modules
-- **Hash extraction**: Password hash recovery capabilities
-
-## Future Extensibility
-
-The architecture supports easy addition of:
-- Configuration file support
-- Tool version checking
-- Output formatting options (JSON, XML, CSV)
-- Logging and audit trails
-- Plugin system for dynamic tool loading
-- Remote execution capabilities
-- Database integration for results
-- Web interface for forensic analysis
-- Container-based analysis environments
+- **Language**: Go 1.25+
+- **CLI Infrastructure**: Cobra Framework
+- **Concurrency**: Native Go channels for parallel analysis scaling
+- **Isolation**: Docker-based tool environment for dependency-free execution
+- **Security Standards**: NIST SP 800-38D, Ed25519
