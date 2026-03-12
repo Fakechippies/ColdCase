@@ -153,5 +153,3 @@ ColdCase uses a **Modular Proxy Pattern** written in Go:
 ## License
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://choosealicense.com/licenses/mit/)
-
-This project integrates various open-source forensics tools. Please check individual tool licenses for specific requirements.
