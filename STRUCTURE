@@ -15,15 +15,30 @@ The central control unit managing:
 - **Security**: Adherence to **NIST SP 800-38D** using **AES-256-GCM** for audit log encryption and **Ed25519** for cryptographic signing of every action to maintain chain-of-custody.
 
 ### Level 3: Tool Proxy Layer (`pkg/[category]/`)
-A collection of 14+ category-specific modules (e.g., `pkg/memory`, `pkg/malware`, `pkg/network`). 
-- Each tool is wrapped in a **Tool Proxy** that implements a standard interface.
-- Includes logic for argument parsing, path detection, and potential host-to-container path remapping.
+A collection of 18+ specialized modules that wrap industry-standard tools:
+- **Package Map**: 
+    - `pkg/didier`: 15 DidierStevens Suite tools (pdfid, oledump, etc.)
+    - `pkg/volatility3`: 31 plugins for memory forensics (Win/Linux/macOS)
+    - `pkg/network`: 11 network forensics and pcap analysis tools
+    - `pkg/carving`: 7 file carving and recovery utilities (foremost, scalpel)
+    - `pkg/timeline`: Plaso supertimeline generation and Windows EVTX analysis
+    - `pkg/malware`: Pattern matching (Yara, Floss) and VirusTotal integration
+    - `pkg/windows`: 7 Windows artifact parsers (regripper, MFT analysis)
+    - `pkg/steg`: 5 steganography and media analysis tools
+    - `pkg/hashing`: 4 integrity verification and fuzzy hashing tools
+    - `pkg/mobile`: Mobile forensics (aleapp, ileapp, adb)
+    - `pkg/sysutils`: Low-level system analysis (xxd, readelf)
+    - `pkg/sleuthkit`: 5 disk forensic utilities (fls, fsstat)
+    - `pkg/binwalk`, `pkg/exiftool`: Standalone tool wrappers
+
+- Each tool is wrapped in a **Tool Proxy** that implements a standard interface for execution and path detection.
 
 ### Level 4: Hybrid Execution Engine (`pkg/runner/`)
 The execution runtime that transparently handles:
 - **Native Execution**: Direct process spawning using `os/exec` if the tool exists on the host.
 - **Containerized Execution**: Automatic fallback to Docker/Podman if the tool is missing.
 - **Smart Path Mapping**: Detecting host filesystem paths in command arguments and automatically generating `-v` bind-mounts for the container.
+- **Plaso Integration**: Specialized logic for handling Plaso storage formats and sorting.
 
 ---
 
@@ -38,13 +53,13 @@ ColdCase/
 │   ├── session/           # Forensic Session Management (State Control)
 │   ├── crypto/            # AES-256-GCM & Ed25519 implementation
 │   ├── tools/             # Base interfaces and registry
-│   ├── [category]/        # Tool Proxy modules (steg, memory, malware, etc.)
+│   ├── [category]/        # Tool Proxy modules (steg, timeline, network, etc.)
 │   └── ... 
-├── DidierStevensSuite/    # Embedded external Python utilities
-├── volatility3/           # Integrated memory forensics framework
+├── DidierStevensSuite/    # Embedded external Python utilities (used by pkg/didier)
+├── volatility3/           # Integrated memory forensics framework (used by pkg/volatility3)
 ├── Diagrams/              # Architectural and Performance visualizations
 ├── bin/                   # Build artifacts
-├── Dockerfile             # Forensics-on-demand container definition
+├── Dockerfile             # Forensics-on-demand container definition with 118+ tools
 ├── STRUCTURE              # This file
 └── README.md              # Project overview and usage guide
 ```
