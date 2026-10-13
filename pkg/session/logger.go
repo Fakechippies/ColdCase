@@ -23,9 +23,7 @@ func (l *Logger) LogCommand(entry CommandEntry) error {
 	if l.session.Signed {
 		priv, err := LoadPrivateKey()
 		if err == nil {
-			// Sign a concat of key fields
-			data := fmt.Sprintf("%d|%s|%s|%s", entry.Index, entry.Timestamp.UTC().Format(time.RFC3339), entry.FullCommand, entry.WorkingDirectory)
-			entry.Signature = Sign(priv, []byte(data))
+			entry.Signature = Sign(priv, CommandSigningData(entry))
 		}
 	}
 	l.session.Commands = append(l.session.Commands, entry)

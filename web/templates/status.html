@@ -1,0 +1,38 @@
+{{define "content"}}
+<section class="card">
+  <div class="card__head">
+    <h2>Container runtime</h2>
+  </div>
+  {{if .ContainerReady}}
+  <div class="kv"><span class="kv__k">Runtime</span><code class="kv__v">{{.Runtime}}</code></div>
+  <div class="kv"><span class="kv__k">Image</span><code class="kv__v">{{.Image}}</code></div>
+  <p class="muted">Tools without a native binary will run inside this image automatically.</p>
+  {{else}}
+  <p class="empty">No container runtime (docker/podman) detected. Only natively installed tools can run.</p>
+  {{end}}
+</section>
+
+<section class="card">
+  <div class="card__head">
+    <h2>Tool availability</h2>
+    <span class="count">{{.AvailableCount}} / {{len .Rows}} available</span>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Tool</th><th>Category</th><th>Binary</th><th>Native</th><th>Container</th><th>Result</th></tr></thead>
+      <tbody>
+        {{range .Rows}}
+        <tr>
+          <td><a class="link" href="/tools/{{.Name}}">{{.Name}}</a></td>
+          <td class="muted">{{.Category}}</td>
+          <td class="mono">{{.Binary}}</td>
+          <td>{{if .Native}}<span class="mark mark--ok">yes</span>{{else}}<span class="mark mark--no">no</span>{{end}}</td>
+          <td>{{if .ContainerReady}}<span class="mark mark--ok">yes</span>{{else}}<span class="mark mark--no">no</span>{{end}}</td>
+          <td>{{if .Available}}<span class="badge badge--ok">available</span>{{else}}<span class="badge badge--danger">missing</span>{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</section>
+{{end}}

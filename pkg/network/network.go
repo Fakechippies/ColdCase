@@ -15,12 +15,15 @@ type NetworkTool struct {
 
 func (n *NetworkTool) Name() string        { return n.name }
 func (n *NetworkTool) Description() string { return n.desc }
-func (n *NetworkTool) Run(args []string) error {
-	return runner.Run(runner.RunOpts{
+func (n *NetworkTool) RunOpts(args []string) runner.RunOpts {
+	return runner.RunOpts{
 		Binary:    n.name,
 		Args:      args,
 		NeedsRoot: n.needsRoot,
-	})
+	}
+}
+func (n *NetworkTool) Run(args []string) error {
+	return runner.Run(n.RunOpts(args))
 }
 
 // Tools returns all network forensics tools.

@@ -15,12 +15,15 @@ type CarvingTool struct {
 
 func (c *CarvingTool) Name() string        { return c.name }
 func (c *CarvingTool) Description() string { return c.desc }
-func (c *CarvingTool) Run(args []string) error {
+func (c *CarvingTool) RunOpts(args []string) runner.RunOpts {
 	bin := c.bin
 	if bin == "" {
 		bin = c.name
 	}
-	return runner.Run(runner.RunOpts{Binary: bin, Args: args})
+	return runner.RunOpts{Binary: bin, Args: args}
+}
+func (c *CarvingTool) Run(args []string) error {
+	return runner.Run(c.RunOpts(args))
 }
 
 // Tools returns all carving and recovery tools.

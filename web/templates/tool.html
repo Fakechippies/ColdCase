@@ -1,0 +1,65 @@
+{{define "topactions"}}
+<a class="btn" href="/tools">← All tools</a>
+{{end}}
+
+{{define "content"}}
+<section class="grid grid--split">
+  <article class="card">
+    <div class="card__head"><h2>Tool</h2></div>
+    <div class="stack">
+      <div class="kv"><span class="kv__k">Command</span><code class="kv__v">{{.Tool.Name}}</code></div>
+      <div class="kv"><span class="kv__k">Binary</span><code class="kv__v">{{.Tool.Binary}}</code></div>
+      <div class="kv"><span class="kv__k">Category</span><span class="kv__v">{{.Tool.Category}}</span></div>
+      <div class="kv"><span class="kv__k">Privileges</span><span class="kv__v">{{if .Tool.NeedsRoot}}<span class="badge badge--warn">root / net caps</span>{{else}}unprivileged{{end}}</span></div>
+      <div class="kv"><span class="kv__k">Status</span><span class="kv__v">{{template "availbadge" .Avail}}</span></div>
+    </div>
+    <p class="muted">{{.Tool.Description}}</p>
+  </article>
+
+  <article class="card">
+    <div class="card__head">
+      <h2>Run</h2>
+    </div>
+    <form id="run-form" class="stack" data-tool="{{.Tool.Name}}" data-needsroot="{{.Tool.NeedsRoot}}" data-csrf="{{.CSRF}}">
+      <div class="field">
+        <label for="args">Arguments <span class="hint">one per line — passed as an array, never through a shell</span></label>
+        <textarea id="args" name="args" rows="4" spellcheck="false" placeholder="images/sample.pdf"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="session">Session <span class="hint">optional — when set, execution is logged &amp; signed</span></label>
+        <select id="session" name="session">
+          <option value="">— no session —</option>
+          {{range .SessionOptions}}
+          <option value="{{.ID}}" {{if .Selected}}selected{{end}}>{{.ID}} ({{.State}})</option>
+          {{end}}
+        </select>
+      </div>
+
+      {{if .Tool.NeedsRoot}}
+      <label class="checkbox checkbox--warn">
+        <input type="checkbox" id="confirm-root">
+        <span>I understand <strong>{{.Tool.Name}}</strong> may need elevated privileges and want to run it anyway.</span>
+      </label>
+      {{end}}
+
+      <div class="row row--gap">
+        <button class="btn btn--primary" type="submit" id="run-btn">Run tool</button>
+        <button class="btn btn--danger" type="button" id="stop-btn" disabled>Stop</button>
+        <span class="run-status" id="run-status" role="status"></span>
+      </div>
+    </form>
+  </article>
+</section>
+
+<section class="card">
+  <div class="card__head">
+    <h2>Live output</h2>
+    <div class="row row--gap">
+      <button class="btn btn--ghost btn--sm" type="button" id="wrap-toggle" aria-pressed="true">Wrap</button>
+      <button class="btn btn--ghost btn--sm" type="button" id="clear-btn">Clear</button>
+    </div>
+  </div>
+  <pre class="terminal" id="terminal" aria-live="polite" aria-label="Tool output"><span class="terminal__placeholder">Output will appear here when you run the tool.</span></pre>
+</section>
+{{end}}

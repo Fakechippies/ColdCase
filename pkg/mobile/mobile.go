@@ -14,12 +14,15 @@ type MobileTool struct {
 
 func (m *MobileTool) Name() string        { return m.name }
 func (m *MobileTool) Description() string { return m.desc }
-func (m *MobileTool) Run(args []string) error {
+func (m *MobileTool) RunOpts(args []string) runner.RunOpts {
 	bin := m.bin
 	if bin == "" {
 		bin = m.name
 	}
-	return runner.Run(runner.RunOpts{Binary: bin, Args: args})
+	return runner.RunOpts{Binary: bin, Args: args}
+}
+func (m *MobileTool) Run(args []string) error {
+	return runner.Run(m.RunOpts(args))
 }
 
 // Tools returns all mobile forensics tools.

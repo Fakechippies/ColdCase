@@ -17,10 +17,15 @@ func (b *BinwalkTool) Description() string {
 	return "Analyze and extract firmware images using Binwalk"
 }
 
-// Run invokes binwalk with the provided arguments.
-func (b *BinwalkTool) Run(args []string) error {
-	return runner.Run(runner.RunOpts{
+// RunOpts describes how to execute binwalk.
+func (b *BinwalkTool) RunOpts(args []string) runner.RunOpts {
+	return runner.RunOpts{
 		Binary: "binwalk",
 		Args:   args,
-	})
+	}
+}
+
+// Run invokes binwalk with the provided arguments.
+func (b *BinwalkTool) Run(args []string) error {
+	return runner.Run(b.RunOpts(args))
 }

@@ -14,12 +14,15 @@ type StegTool struct {
 
 func (s *StegTool) Name() string        { return s.name }
 func (s *StegTool) Description() string { return s.desc }
-func (s *StegTool) Run(args []string) error {
+func (s *StegTool) RunOpts(args []string) runner.RunOpts {
 	bin := s.bin
 	if bin == "" {
 		bin = s.name
 	}
-	return runner.Run(runner.RunOpts{Binary: bin, Args: args})
+	return runner.RunOpts{Binary: bin, Args: args}
+}
+func (s *StegTool) Run(args []string) error {
+	return runner.Run(s.RunOpts(args))
 }
 
 // Tools returns all steganography and media tools.

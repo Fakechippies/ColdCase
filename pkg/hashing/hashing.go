@@ -13,8 +13,11 @@ type HashTool struct {
 
 func (h *HashTool) Name() string        { return h.name }
 func (h *HashTool) Description() string { return h.desc }
+func (h *HashTool) RunOpts(args []string) runner.RunOpts {
+	return runner.RunOpts{Binary: h.name, Args: args}
+}
 func (h *HashTool) Run(args []string) error {
-	return runner.Run(runner.RunOpts{Binary: h.name, Args: args})
+	return runner.Run(h.RunOpts(args))
 }
 
 // Tools returns all hashing tools.

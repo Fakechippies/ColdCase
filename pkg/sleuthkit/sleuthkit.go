@@ -32,12 +32,17 @@ func (s *SleuthKitTool) Description() string {
 	return fmt.Sprintf("Run %s from Sleuth Kit", s.tool)
 }
 
-// Run invokes the Sleuth Kit binary with the provided arguments.
-func (s *SleuthKitTool) Run(args []string) error {
-	return runner.Run(runner.RunOpts{
+// RunOpts describes how to execute this Sleuth Kit binary.
+func (s *SleuthKitTool) RunOpts(args []string) runner.RunOpts {
+	return runner.RunOpts{
 		Binary: s.tool,
 		Args:   args,
-	})
+	}
+}
+
+// Run invokes the Sleuth Kit binary with the provided arguments.
+func (s *SleuthKitTool) Run(args []string) error {
+	return runner.Run(s.RunOpts(args))
 }
 
 // Tools returns the standard set of Sleuth Kit tools.

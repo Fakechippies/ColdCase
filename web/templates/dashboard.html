@@ -1,0 +1,78 @@
+{{define "content"}}
+<section class="grid grid--stats">
+  <article class="stat card">
+    <span class="stat__label">Tools</span>
+    <span class="stat__value">{{.ToolCount}}</span>
+    <span class="stat__meta">{{.CategoryCount}} categories</span>
+  </article>
+  <article class="stat card">
+    <span class="stat__label">Native</span>
+    <span class="stat__value">{{.NativeCount}}</span>
+    <span class="stat__meta">installed on host</span>
+  </article>
+  <article class="stat card">
+    <span class="stat__label">Container fallback</span>
+    <span class="stat__value">{{if .ContainerReady}}{{.ContainerCount}}{{else}}0{{end}}</span>
+    <span class="stat__meta">{{if .Runtime}}via {{.Runtime}} · {{.Image}}{{else}}no runtime detected{{end}}</span>
+  </article>
+  <article class="stat card">
+    <span class="stat__label">Sessions</span>
+    <span class="stat__value">{{.SessionCount}}</span>
+    <span class="stat__meta">{{if .KeysReady}}signing enabled{{else}}generate keys to sign{{end}}</span>
+  </article>
+</section>
+
+<section class="card">
+  <div class="card__head">
+    <h2>Investigation workflow</h2>
+  </div>
+  <ol class="steps">
+    <li><span class="steps__n">1</span><div><strong>Create a session</strong><p>Start a signed, auditable chain of custody.</p></div></li>
+    <li><span class="steps__n">2</span><div><strong>Run tools</strong><p>Pick a tool from the catalog and stream its output live.</p></div></li>
+    <li><span class="steps__n">3</span><div><strong>Verify &amp; export</strong><p>Check Ed25519 signatures and export a JSON/Markdown/HTML report.</p></div></li>
+  </ol>
+  <div class="row row--gap">
+    <a class="btn btn--primary" href="/sessions">Manage sessions</a>
+    <a class="btn" href="/tools">Browse tools</a>
+    <a class="btn" href="/status">Check availability</a>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card__head">
+    <h2>Recent sessions</h2>
+    <a class="link" href="/sessions">View all</a>
+  </div>
+  {{if .RecentSessions}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Session</th><th>Investigator</th><th>State</th><th>Commands</th><th>Created</th></tr></thead>
+      <tbody>
+        {{range .RecentSessions}}
+        <tr>
+          <td><a class="link" href="/sessions/{{.ID}}">{{.ID}}</a></td>
+          <td>{{.Investigator}}</td>
+          <td>{{template "statebadge" .State}}</td>
+          <td>{{.CommandCount}}</td>
+          <td class="mono">{{fmtTime .Created}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="empty">No sessions yet. <a class="link" href="/sessions">Create one</a> to begin logging.</p>
+  {{end}}
+</section>
+
+<section class="card card--note">
+  <div class="card__head"><h2>Security posture</h2></div>
+  <ul class="ticks">
+    <li>Bound to the loopback interface by default.</li>
+    <li>Tool names are validated against the catalog; arguments are passed as arrays — never through a shell.</li>
+    <li>All state-changing requests require a CSRF token.</li>
+    <li>Root-needing tools require explicit confirmation before execution.</li>
+    <li>Tools run through the same runner as the CLI, so session audit logging is preserved.</li>
+  </ul>
+</section>
+{{end}}

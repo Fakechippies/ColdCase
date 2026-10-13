@@ -1,0 +1,75 @@
+{{define "topactions"}}
+{{if not .KeysReady}}
+<form method="post" action="/keys/generate" class="inline">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <button class="btn" type="submit">Generate signing keys</button>
+</form>
+{{else}}
+<span class="badge badge--ok">Ed25519 keys present</span>
+{{end}}
+{{end}}
+
+{{define "content"}}
+<section class="grid grid--split">
+  <article class="card">
+    <div class="card__head"><h2>New session</h2></div>
+    <form method="post" action="/sessions" class="stack">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <div class="field">
+        <label for="id">Session ID</label>
+        <input id="id" name="id" required pattern="[A-Za-z0-9._-]+" placeholder="case-001">
+      </div>
+      <div class="grid grid--2">
+        <div class="field">
+          <label for="investigator">Investigator</label>
+          <input id="investigator" name="investigator" placeholder="Jane Doe">
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="jane@example.org">
+        </div>
+      </div>
+      <label class="checkbox"><input type="checkbox" name="sign" value="1" {{if .KeysReady}}checked{{end}}> Sign command log with Ed25519</label>
+      <label class="checkbox"><input type="checkbox" name="encrypt" value="1"> Mark session for encryption (metadata)</label>
+      <div class="row row--gap">
+        <button class="btn btn--primary" type="submit">Create session</button>
+      </div>
+    </form>
+  </article>
+
+  <article class="card">
+    <div class="card__head"><h2>How sessions work</h2></div>
+    <ul class="ticks">
+      <li><strong>Unlocked</strong> — tools run and are logged to the session.</li>
+      <li><strong>Locked</strong> — read-only; execution under the session is refused.</li>
+      <li><strong>Sealed</strong> — permanently closed with a final signature.</li>
+      <li>Each command entry is signed over index, timestamp, full command and working directory.</li>
+    </ul>
+  </article>
+</section>
+
+<section class="card">
+  <div class="card__head"><h2>Sessions</h2><span class="count">{{len .Sessions}}</span></div>
+  {{if .Sessions}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Session</th><th>Investigator</th><th>State</th><th>Signed</th><th>Commands</th><th>Created</th></tr></thead>
+      <tbody>
+        {{range .Sessions}}
+        <tr>
+          <td><a class="link" href="/sessions/{{.ID}}">{{.ID}}</a></td>
+          <td>{{.Investigator}}</td>
+          <td>{{template "statebadge" .State}}</td>
+          <td>{{if .Signed}}<span class="mark mark--ok">yes</span>{{else}}<span class="mark mark--no">no</span>{{end}}</td>
+          <td>{{.CommandCount}}</td>
+          <td class="mono">{{fmtTime .Created}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="empty">No sessions found under <code>~/.coldcase/sessions</code>.</p>
+  {{end}}
+</section>
+{{end}}

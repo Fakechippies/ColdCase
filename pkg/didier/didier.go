@@ -22,14 +22,20 @@ func (d *DidierStevensTool) Name() string { return d.name }
 // Description returns a short description of this tool.
 func (d *DidierStevensTool) Description() string { return d.description }
 
+// RunOpts describes how to execute this script: the python3 interpreter
+// followed by the suite script and the caller's arguments.
+func (d *DidierStevensTool) RunOpts(args []string) runner.RunOpts {
+	cmdArgs := append([]string{d.scriptPath}, args...)
+	return runner.RunOpts{
+		Binary: "python3",
+		Args:   cmdArgs,
+	}
+}
+
 // Run executes the Python script with the given arguments.
 // Returns an error if python3 is not installed or the script is missing.
 func (d *DidierStevensTool) Run(args []string) error {
-	cmdArgs := append([]string{d.scriptPath}, args...)
-	return runner.Run(runner.RunOpts{
-		Binary: "python3",
-		Args:   cmdArgs,
-	})
+	return runner.Run(d.RunOpts(args))
 }
 
 // ScriptPath returns the resolved path to the underlying .py script.

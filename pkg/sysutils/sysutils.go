@@ -14,8 +14,11 @@ type SysUtil struct {
 
 func (s *SysUtil) Name() string        { return s.name }
 func (s *SysUtil) Description() string { return s.desc }
+func (s *SysUtil) RunOpts(args []string) runner.RunOpts {
+	return runner.RunOpts{Binary: s.name, Args: args}
+}
 func (s *SysUtil) Run(args []string) error {
-	return runner.Run(runner.RunOpts{Binary: s.name, Args: args})
+	return runner.Run(s.RunOpts(args))
 }
 
 // Tools returns all system utility wrappers.

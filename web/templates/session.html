@@ -1,0 +1,121 @@
+{{define "topactions"}}
+<a class="btn" href="/sessions">← All sessions</a>
+{{end}}
+
+{{define "content"}}
+<section class="card">
+  <div class="card__head">
+    <h2>{{.Session.ID}}</h2>
+    {{template "statebadge" .Session.State}}
+  </div>
+  <div class="grid grid--3">
+    <div class="kv"><span class="kv__k">Investigator</span><span class="kv__v">{{if .Session.Investigator}}{{.Session.Investigator}}{{else}}<span class="muted">unknown</span>{{end}}</span></div>
+    <div class="kv"><span class="kv__k">Email</span><span class="kv__v">{{if .Session.Email}}{{.Session.Email}}{{else}}<span class="muted">—</span>{{end}}</span></div>
+    <div class="kv"><span class="kv__k">Created</span><span class="kv__v mono">{{fmtTime .Session.Created}}</span></div>
+    <div class="kv"><span class="kv__k">Signed</span><span class="kv__v">{{if .Session.Signed}}yes{{else}}no{{end}}</span></div>
+    <div class="kv"><span class="kv__k">Encrypted</span><span class="kv__v">{{if .Session.Encrypted}}yes{{else}}no{{end}}</span></div>
+    <div class="kv"><span class="kv__k">Sealed</span><span class="kv__v mono">{{if .Session.SealedAt}}{{fmtTime .Session.SealedAt}}{{else}}—{{end}}</span></div>
+  </div>
+
+  <div class="verify verify--{{.VerifyState}}">
+    <strong>Signature verification:</strong>
+    {{if eq .VerifyState "ok"}}<span class="badge badge--ok">all {{len .Commands}} entries valid</span>
+    {{else if eq .VerifyState "fail"}}<span class="badge badge--danger">failed</span> <span class="muted">{{.VerifyMsg}}</span>
+    {{else if eq .VerifyState "unsigned"}}<span class="badge badge--muted">session not signed</span>
+    {{else}}<span class="badge badge--warn">unavailable</span> <span class="muted">{{.VerifyMsg}}</span>{{end}}
+  </div>
+
+  <div class="row row--gap">
+    <a class="btn" href="/sessions/{{.Session.ID}}/export?format=html">Export HTML</a>
+    <a class="btn" href="/sessions/{{.Session.ID}}/export?format=markdown">Export Markdown</a>
+    <a class="btn" href="/sessions/{{.Session.ID}}/export?format=json">Export JSON</a>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card__head"><h2>Lifecycle</h2></div>
+  <div class="row row--gap">
+    {{if eq .Session.State "locked"}}
+    <form method="post" action="/sessions/{{.Session.ID}}/action" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="unlock">
+      <button class="btn" type="submit">Unlock</button>
+    </form>
+    {{else if eq .Session.State "unlocked"}}
+    <form method="post" action="/sessions/{{.Session.ID}}/action" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="lock">
+      <button class="btn" type="submit">Lock session</button>
+    </form>
+    {{end}}
+    {{if ne .Session.State "sealed"}}
+    <form method="post" action="/sessions/{{.Session.ID}}/action" class="inline" data-confirm="Sealing is permanent. Continue?">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="seal">
+      <button class="btn btn--danger" type="submit">Seal permanently</button>
+    </form>
+    {{end}}
+    <form method="post" action="/sessions/{{.Session.ID}}/action" class="inline">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="action" value="verify">
+      <button class="btn" type="submit">Re-verify signatures</button>
+    </form>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card__head"><h2>Command history</h2><span class="count">{{len .Commands}}</span></div>
+  {{if .Commands}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>#</th><th>Time</th><th>Command</th><th>Exit</th><th>Duration</th><th>Signature</th><th>Output</th></tr></thead>
+      <tbody>
+        {{range .Commands}}
+        <tr>
+          <td class="mono">{{.Index}}</td>
+          <td class="mono">{{fmtTime .Timestamp}}</td>
+          <td class="mono">{{.FullCommand}}</td>
+          <td>{{if eq .ExitCode 0}}<span class="mark mark--ok">{{.ExitCode}}</span>{{else}}<span class="mark mark--no">{{.ExitCode}}</span>{{end}}</td>
+          <td class="mono">{{.DurationMS}}ms</td>
+          <td>{{template "sigbadge" .Sig}}</td>
+          <td>
+            {{if .OutputPreview}}
+            <details class="preview">
+              <summary>view</summary>
+              <pre class="terminal terminal--sm">{{.OutputPreview}}</pre>
+            </details>
+            {{else}}<span class="muted">—</span>{{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="empty">No commands logged yet.</p>
+  {{end}}
+</section>
+
+<section class="card">
+  <div class="card__head"><h2>Evidence integrity (SHA256)</h2><span class="count">{{len .Session.Evidence}}</span></div>
+  {{if .Session.Evidence}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Path</th><th>SHA256</th><th>Size</th><th>Captured</th></tr></thead>
+      <tbody>
+        {{range .Session.Evidence}}
+        <tr>
+          <td class="mono break">{{.OriginalPath}}</td>
+          <td class="mono">{{shortHash .SHA256}}</td>
+          <td class="mono">{{.Size}}</td>
+          <td class="mono">{{fmtTime .CapturedAt}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="empty">No evidence files hashed for this session.</p>
+  {{end}}
+</section>
+{{end}}

@@ -4,47 +4,18 @@ import (
 	"fmt"
 	"os"
 
-	"coldcase/pkg/carving"
-	"coldcase/pkg/didier"
-	"coldcase/pkg/hashing"
-	"coldcase/pkg/malware"
-	"coldcase/pkg/mobile"
-	"coldcase/pkg/network"
+	"coldcase/pkg/catalog"
 	"coldcase/pkg/runner"
-	"coldcase/pkg/sleuthkit"
-	"coldcase/pkg/steg"
-	"coldcase/pkg/sysutils"
-	"coldcase/pkg/timeline"
 	"coldcase/pkg/tools"
 	vol3 "coldcase/pkg/volatility3"
-	wintools "coldcase/pkg/windows"
 
 	"github.com/spf13/cobra"
 )
 
 func listTools(cmd *cobra.Command, args []string) {
-	printCategory("DidierStevens Suite", didier.Tools(defaultSuitePath))
-	printCategory("Network Forensics", network.Tools())
-	printCategory("File Carving & Recovery", carving.Tools())
-	printCategory("Malware & Pattern Matching", malware.Tools())
-	printCategory("Hashing & Verification", hashing.Tools())
-	printCategory("Timeline & Log Analysis", getNonPlasoTimelineTools())
-	fmt.Println("\nPlaso (log2timeline):")
-	fmt.Printf("  %-26s - %s\n", "plaso parse", "Plaso — multi-source supertimeline generation")
-	fmt.Printf("  %-26s - %s\n", "plaso sort", "Plaso — sort and filter Plaso storage files")
-	fmt.Printf("  %-26s - %s\n", "plaso psteal", "Plaso — extract and output timeline in one step")
-	fmt.Printf("  %-26s - %s\n", "plaso parsers --list", "List all available plaso parsers")
-
-	printCategory("Mobile Forensics", mobile.Tools())
-	printCategory("Windows Artifacts", wintools.Tools())
-	printCategory("Steganography & Media", steg.Tools())
-	printCategory("System Utilities", sysutils.Tools())
-	printCategory("Sleuth Kit", sleuthkit.Tools())
-	printCategory("Volatility3 Memory Forensics", vol3.Tools())
-
-	fmt.Println("\nGeneral Tools:")
-	fmt.Printf("  %-26s - %s\n", "exif", "Extract metadata from files using ExifTool")
-	fmt.Printf("  %-26s - %s\n", "binwalk", "Analyze and extract firmware images")
+	for _, c := range catalog.Categories() {
+		printCatalogCategory(c.Name, c.Tools)
+	}
 
 	fmt.Println("\nUtility Commands:")
 	for _, u := range []struct{ n, d string }{
@@ -53,6 +24,7 @@ func listTools(cmd *cobra.Command, args []string) {
 		{"install", "Install project dependencies"},
 		{"deps", "Manage project dependencies"},
 		{"platform", "Show platform-specific setup information"},
+		{"serve", "Start the local ColdCase web UI"},
 		{"container status", "Show container runtime and image status"},
 		{"container build", "Build the ColdCase container image"},
 		{"container pull", "Pull the ColdCase container image"},
@@ -62,55 +34,31 @@ func listTools(cmd *cobra.Command, args []string) {
 	}
 }
 
-type namedTool interface {
-	Name() string
-	Description() string
-}
-
-func printCategory[T namedTool](title string, ts []T) {
+// printCatalogCategory renders one catalog category using the same layout as
+// the historical `coldcase list` output.
+func printCatalogCategory(title string, ts []catalog.Tool) {
 	fmt.Printf("\n%s:\n", title)
 	for _, t := range ts {
-		fmt.Printf("  %-26s - %s\n", t.Name(), t.Description())
+		fmt.Printf("  %-26s - %s\n", t.Name, t.Description)
 	}
-}
-
-func getNonPlasoTimelineTools() []namedTool {
-	var results []namedTool
-	for _, t := range timeline.Tools() {
-		switch t.Name() {
-		case "log2timeline", "psort", "psteal":
-			continue
-		default:
-			results = append(results, t)
-		}
-	}
-	return results
 }
 
 func checkTools(cmd *cobra.Command, args []string) {
 	fmt.Println("Checking installed tools...")
 
-	binaries := []string{
-		"python3", "exiftool", "binwalk",
-		"fls", "fsstat", "istat", "jls", "tsk_loaddb",
-		"tshark", "tcpdump", "zeek", "ngrep", "tcpflow", "pcapfix",
-		"foremost", "scalpel", "photorec", "bulk_extractor", "testdisk", "ddrescue",
-		"yara", "floss", "strings", "capa",
-		"md5deep", "hashdeep", "ssdeep", "tlsh",
-		"log2timeline", "hayabusa", "evtx_dump", "timeliner", "chainsaw",
-		"adb", "ideviceinfo",
-		"regripper", "regrippy", "analyzeMFT", "ntfsls", "ntfscat", "indxparse", "python-registry",
-		"steghide", "zsteg", "mediainfo", "stegdetect",
-		"xxd", "objdump", "readelf", "nm", "file", "ldd",
-	}
-
+	// Every underlying binary in the catalog is checked once.
+	seen := map[string]bool{}
 	installed, missing := 0, 0
-	for _, t := range binaries {
-		if tools.CheckToolInstalled(t) {
-			fmt.Printf("[*] %-20s installed\n", t)
+	for _, t := range catalog.All() {
+		if seen[t.Binary] {
+			continue
+		}
+		seen[t.Binary] = true
+		if tools.CheckToolInstalled(t.Binary) {
+			fmt.Printf("[*] %-20s installed\n", t.Binary)
 			installed++
 		} else {
-			fmt.Printf("[x] %-20s not found\n", t)
+			fmt.Printf("[x] %-20s not found\n", t.Binary)
 			missing++
 		}
 	}
@@ -124,7 +72,7 @@ func checkTools(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if _, err := os.Stat("./DidierStevensSuite"); err == nil {
+	if _, err := os.Stat(catalog.DefaultSuitePath); err == nil {
 		fmt.Println("[*] DidierStevensSuite   found")
 	} else {
 		fmt.Println("[x] DidierStevensSuite   not found")

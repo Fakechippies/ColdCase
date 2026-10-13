@@ -7,6 +7,7 @@ import (
 
 	"coldcase/pkg/binwalk"
 	"coldcase/pkg/carving"
+	"coldcase/pkg/catalog"
 	"coldcase/pkg/didier"
 	"coldcase/pkg/exiftool"
 	"coldcase/pkg/hashing"
@@ -24,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const defaultSuitePath = "./DidierStevensSuite"
+const defaultSuitePath = catalog.DefaultSuitePath
 
 var rootCmd = &cobra.Command{
 	Use:   "coldcase",

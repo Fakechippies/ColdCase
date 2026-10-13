@@ -15,12 +15,15 @@ type WindowsTool struct {
 
 func (w *WindowsTool) Name() string        { return w.name }
 func (w *WindowsTool) Description() string { return w.desc }
-func (w *WindowsTool) Run(args []string) error {
+func (w *WindowsTool) RunOpts(args []string) runner.RunOpts {
 	bin := w.bin
 	if bin == "" {
 		bin = w.name
 	}
-	return runner.Run(runner.RunOpts{Binary: bin, Args: args})
+	return runner.RunOpts{Binary: bin, Args: args}
+}
+func (w *WindowsTool) Run(args []string) error {
+	return runner.Run(w.RunOpts(args))
 }
 
 // Tools returns all Windows artifact analysis tools.

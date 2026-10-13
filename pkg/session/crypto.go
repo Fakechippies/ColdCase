@@ -104,11 +104,61 @@ func HashFile(path string) (sha256Hash, md5Hash string, err error) {
 	return hex.EncodeToString(h256.Sum(nil)), "", nil
 }
 
+// CommandSigningData returns the canonical byte string that is signed for a
+// command entry. Both signing (Logger.LogCommand) and verification
+// (Manager.VerifySession, web UI) use this helper so the signed format can
+// never drift between writer and reader.
+func CommandSigningData(cmd CommandEntry) []byte {
+	return []byte(fmt.Sprintf("%d|%s|%s|%s",
+		cmd.Index,
+		cmd.Timestamp.UTC().Format(time.RFC3339),
+		cmd.FullCommand,
+		cmd.WorkingDirectory,
+	))
+}
+
+// SessionSigningData returns the canonical byte string signed when a session
+// is sealed.
+func SessionSigningData(s *Session) []byte {
+	return []byte(fmt.Sprintf("%s|%s|%d",
+		s.ID,
+		s.Created.UTC().Format(time.RFC3339),
+		len(s.Commands),
+	))
+}
+
+// KeysDir returns the directory where ColdCase stores its Ed25519 keypair.
+func KeysDir() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".coldcase", "keys")
+}
+
+// SaveKeys persists an Ed25519 keypair to the default key directory.
+func SaveKeys(priv ed25519.PrivateKey, pub ed25519.PublicKey) error {
+	dir := KeysDir()
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(dir, "private.key"), priv, 0600); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, "public.key"), pub, 0644)
+}
+
+// KeysExist reports whether a usable signing keypair is present on disk.
+func KeysExist() bool {
+	if _, err := LoadPrivateKey(); err != nil {
+		return false
+	}
+	if _, err := LoadPublicKey(); err != nil {
+		return false
+	}
+	return true
+}
+
 // LoadPrivateKey from the default location
 func LoadPrivateKey() (ed25519.PrivateKey, error) {
-	home, _ := os.UserHomeDir()
-	path := filepath.Join(home, ".coldcase", "keys", "private.key")
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filepath.Join(KeysDir(), "private.key"))
 	if err != nil {
 		return nil, err
 	}
@@ -120,9 +170,7 @@ func LoadPrivateKey() (ed25519.PrivateKey, error) {
 
 // LoadPublicKey from the default location
 func LoadPublicKey() (ed25519.PublicKey, error) {
-	home, _ := os.UserHomeDir()
-	path := filepath.Join(home, ".coldcase", "keys", "public.key")
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filepath.Join(KeysDir(), "public.key"))
 	if err != nil {
 		return nil, err
 	}
@@ -132,12 +180,23 @@ func LoadPublicKey() (ed25519.PublicKey, error) {
 	return ed25519.PublicKey(data), nil
 }
 
-// VerifySession checks all command signatures
+// ParsePublicKey decodes a hex-encoded Ed25519 public key as stored on a
+// session.
+func ParsePublicKey(s string) (ed25519.PublicKey, error) {
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
+	if len(b) != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("invalid public key size: %d", len(b))
+	}
+	return ed25519.PublicKey(b), nil
+}
+
+// VerifySession checks all command signatures.
 func (m *Manager) VerifySession(s *Session, pub ed25519.PublicKey) error {
 	for i, cmd := range s.Commands {
-		// Re-create the data that was signed
-		data := fmt.Sprintf("%d|%s|%s|%s", cmd.Index, cmd.Timestamp.UTC().Format(time.RFC3339), cmd.FullCommand, cmd.WorkingDirectory)
-		if !Verify(pub, []byte(data), cmd.Signature) {
+		if !Verify(pub, CommandSigningData(cmd), cmd.Signature) {
 			return fmt.Errorf("signature verification failed for command #%d", i+1)
 		}
 	}

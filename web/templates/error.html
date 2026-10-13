@@ -1,0 +1,9 @@
+{{define "content"}}
+<section class="card">
+  <div class="card__head"><h2>{{.ErrorTitle}}</h2><span class="badge badge--danger">{{.ErrorCode}}</span></div>
+  <p class="muted">{{.ErrorDetail}}</p>
+  <div class="row row--gap">
+    <a class="btn btn--primary" href="/">Back to dashboard</a>
+  </div>
+</section>
+{{end}}

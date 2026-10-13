@@ -28,24 +28,35 @@ func (v Volatility3Tool) Description() string { return v.description }
 // Command returns the volatility3 plugin/sub-command name.
 func (v Volatility3Tool) Command() string { return v.command }
 
+// RunOpts describes how to execute this plugin via the bundled vol.py.
+func (v Volatility3Tool) RunOpts(args []string) runner.RunOpts {
+	return RunOptsWithVolDir("volatility3", v.command, args)
+}
+
 // Run executes vol.py with the configured plugin and any extra arguments.
 // volDir is the path to the directory containing vol.py (default: "./volatility3").
 func (v Volatility3Tool) Run(args []string) error {
-	return RunWithVolDir("volatility3", v.command, args)
+	return runner.Run(v.RunOpts(args))
 }
 
-// RunWithVolDir runs vol.py located at volDir/vol.py with the given plugin and args.
-func RunWithVolDir(volDir, command string, args []string) error {
+// RunOptsWithVolDir builds the execution plan for vol.py located at
+// volDir/vol.py with the given plugin and args.
+func RunOptsWithVolDir(volDir, command string, args []string) runner.RunOpts {
 	volPath := filepath.Join(volDir, "vol.py")
 	cmdArgs := []string{volPath}
 	if command != "" {
 		cmdArgs = append(cmdArgs, command)
 	}
 	cmdArgs = append(cmdArgs, args...)
-	return runner.Run(runner.RunOpts{
+	return runner.RunOpts{
 		Binary: "python3",
 		Args:   cmdArgs,
-	})
+	}
+}
+
+// RunWithVolDir runs vol.py located at volDir/vol.py with the given plugin and args.
+func RunWithVolDir(volDir, command string, args []string) error {
+	return runner.Run(RunOptsWithVolDir(volDir, command, args))
 }
 
 // Tools returns the full list of pre-defined Volatility3 tools.

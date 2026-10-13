@@ -1,6 +1,7 @@
 package session
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -52,6 +53,14 @@ func (m *Manager) Create(id string, investigator, email string, sign, encrypt bo
 		Evidence:     []EvidenceFile{},
 	}
 
+	// Embed the active public key so the session remains independently
+	// verifiable even if the global keypair is later rotated.
+	if sign {
+		if pub, err := LoadPublicKey(); err == nil {
+			s.PublicKey = hex.EncodeToString(pub)
+		}
+	}
+
 	if err := m.Save(s); err != nil {
 		return nil, err
 	}
@@ -97,6 +106,33 @@ func (m *Manager) List() ([]string, error) {
 		}
 	}
 	return results, nil
+}
+
+// Lock transitions a session to the read-only "locked" state.
+func (m *Manager) Lock(s *Session) error {
+	s.State = StateLocked
+	return m.Save(s)
+}
+
+// Unlock returns a locked session to the "unlocked" state so tools may run.
+func (m *Manager) Unlock(s *Session) error {
+	s.State = StateUnlocked
+	s.SealedAt = nil
+	return m.Save(s)
+}
+
+// Seal permanently closes a session. If signing is enabled and a private key
+// is present, a final session signature is produced over the sealed summary.
+func (m *Manager) Seal(s *Session) error {
+	now := time.Now()
+	s.State = StateSealed
+	s.SealedAt = &now
+	if s.Signed {
+		if priv, err := LoadPrivateKey(); err == nil {
+			s.Signature = Sign(priv, SessionSigningData(s))
+		}
+	}
+	return m.Save(s)
 }
 
 // GetActiveSessionID returns the session ID from the environment

@@ -1,0 +1,12 @@
+{{define "statebadge"}}<span class="badge badge--state badge--{{.}}">{{.}}</span>{{end}}
+
+{{define "availbadge"}}
+  {{if .Native}}<span class="badge badge--ok" title="Available natively on PATH">native</span>
+  {{else if .Container}}<span class="badge badge--info" title="Available via container fallback">container</span>
+  {{else}}<span class="badge badge--danger" title="Not available on this host">unavailable</span>{{end}}
+{{end}}
+
+{{define "sigbadge"}}
+  {{if .Present}}{{if .Valid}}<span class="badge badge--ok" title="Ed25519 signature verified">valid</span>{{else}}<span class="badge badge--danger" title="Signature did not verify">invalid</span>{{end}}
+  {{else}}<span class="badge badge--muted">unsigned</span>{{end}}
+{{end}}

@@ -1,0 +1,36 @@
+{{define "topactions"}}
+<form class="search" role="search" action="/tools" method="get">
+  <label class="sr-only" for="q">Filter tools</label>
+  <input id="q" name="q" type="search" placeholder="Filter tools…" value="{{.Query}}" autocomplete="off">
+</form>
+{{end}}
+
+{{define "content"}}
+{{range .Categories}}
+{{if .Tools}}
+<section class="card" id="cat-{{slug .Name}}">
+  <div class="card__head">
+    <h2>{{.Name}}</h2>
+    <span class="count">{{len .Tools}}</span>
+  </div>
+  <div class="toolgrid">
+    {{range .Tools}}
+    <a class="toolcard" href="/tools/{{.Name}}">
+      <div class="toolcard__top">
+        <span class="toolcard__name">{{.Name}}</span>
+        {{if .NeedsRoot}}<span class="badge badge--warn" title="May require elevated privileges">root</span>{{end}}
+      </div>
+      <p class="toolcard__desc">{{.Description}}</p>
+      <div class="toolcard__foot">
+        <code class="toolcard__bin">{{.Binary}}</code>
+        {{with index $.Availability .Name}}{{template "availbadge" .}}{{end}}
+      </div>
+    </a>
+    {{end}}
+  </div>
+</section>
+{{end}}
+{{else}}
+<section class="card"><p class="empty">No tools matched “{{.Query}}”.</p></section>
+{{end}}
+{{end}}

@@ -14,12 +14,18 @@ type TimelineTool struct {
 
 func (t *TimelineTool) Name() string        { return t.name }
 func (t *TimelineTool) Description() string { return t.desc }
-func (t *TimelineTool) Run(args []string) error {
+func (t *TimelineTool) runOpts(args []string) runner.RunOpts {
 	bin := t.bin
 	if bin == "" {
 		bin = t.name
 	}
-	return runner.Run(runner.RunOpts{Binary: bin, Args: args})
+	return runner.RunOpts{Binary: bin, Args: args}
+}
+
+// RunOpts describes how to execute this timeline tool.
+func (t *TimelineTool) RunOpts(args []string) runner.RunOpts { return t.runOpts(args) }
+func (t *TimelineTool) Run(args []string) error {
+	return runner.Run(t.runOpts(args))
 }
 
 // Tools returns all timeline and log analysis tools.
