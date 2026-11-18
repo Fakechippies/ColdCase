@@ -131,12 +131,15 @@ func (s *Server) withCommon(next http.Handler) http.Handler {
 				http.Error(w, "internal error", http.StatusInternalServerError)
 				return
 			}
-			http.SetCookie(w, &http.Cookie{
+			http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: Secure would break loopback plain HTTP; see below
 				Name:     csrfCookie,
 				Value:    token,
 				Path:     "/",
 				HttpOnly: true,
 				SameSite: http.SameSiteStrictMode,
+				// Secure is deliberately omitted: the console is served
+				// over plain HTTP on loopback, where the cookie attribute
+				// would break authentication.
 			})
 		}
 		r = r.WithContext(context.WithValue(r.Context(), csrfContextKey{}, token))

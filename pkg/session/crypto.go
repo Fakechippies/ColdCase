@@ -90,11 +90,11 @@ func Decrypt(key, data []byte) ([]byte, error) {
 
 // HashFile computes SHA256 of a file
 func HashFile(path string) (sha256Hash, md5Hash string, err error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // HashFile hashes user-supplied evidence paths by design
 	if err != nil {
 		return "", "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	h256 := sha256.New()
 	if _, err := io.Copy(h256, f); err != nil {
@@ -142,7 +142,7 @@ func SaveKeys(priv ed25519.PrivateKey, pub ed25519.PublicKey) error {
 	if err := os.WriteFile(filepath.Join(dir, "private.key"), priv, 0600); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, "public.key"), pub, 0644)
+	return os.WriteFile(filepath.Join(dir, "public.key"), pub, 0644) //nolint:gosec // public keys are world-readable on purpose
 }
 
 // KeysExist reports whether a usable signing keypair is present on disk.

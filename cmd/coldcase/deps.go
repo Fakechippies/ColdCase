@@ -45,7 +45,7 @@ func installDependencies(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 		image := runner.ImageName()
-		buildCmd := exec.Command(rt, "build", "-t", image, ".")
+		buildCmd := exec.Command(rt, "build", "-t", image, ".") //nolint:gosec // rt is the detected runtime from PATH; image is internal config
 		buildCmd.Stdout = os.Stdout
 		buildCmd.Stderr = os.Stderr
 		if err := buildCmd.Run(); err != nil {
@@ -153,7 +153,9 @@ func updateDeps(cmd *cobra.Command, args []string) {
 	if tools.CheckToolInstalled("uv") {
 		if err := tools.ExecuteCommand("uv", "pip", "install", "--upgrade", "./volatility3[full]"); err != nil {
 			fmt.Printf("[!] uv update failed, falling back to pip: %v\n", err)
-			tools.ExecuteCommand("python3", "-m", "pip", "install", "--upgrade", "./volatility3[full]")
+			if pipErr := tools.ExecuteCommand("python3", "-m", "pip", "install", "--upgrade", "./volatility3[full]"); pipErr != nil {
+				fmt.Printf("[x] pip fallback failed: %v\n", pipErr)
+			}
 		}
 	} else {
 		if err := tools.ExecuteCommand("python3", "-m", "pip", "install", "--upgrade", "./volatility3[full]"); err != nil {

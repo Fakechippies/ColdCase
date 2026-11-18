@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 )
 
 var (
 	baseDir string
-	mu      sync.Mutex
 )
 
 func init() {
@@ -70,7 +68,7 @@ func (m *Manager) Create(id string, investigator, email string, sign, encrypt bo
 
 func (m *Manager) Load(id string) (*Session, error) {
 	path := filepath.Join(m.sessionsDir, id, "session.json")
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path is sessionsDir + a pattern-validated session id
 	if err != nil {
 		return nil, err
 	}
