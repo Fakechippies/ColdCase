@@ -80,24 +80,24 @@ A comprehensive CLI tool that integrates 118+ digital forensics utilities into a
 git clone https://github.com/Fakechippies/ColdCase
 cd ColdCase
 
-# Build the CLI
-go build -o bin/coldcase ./cmd/coldcase
+# Install the CLI onto your PATH
+go install ./cmd/coldcase
 
 # Option A: Install tools on the host
-bin/coldcase install
+coldcase install
 
 # Option B: Set up the hybrid container (recommended)
-bin/coldcase install --container
+coldcase install --container
 ```
 
 ## Usage
 
 ### Basic Commands
 ```bash
-bin/coldcase list             # Show all 118+ tools
-bin/coldcase check            # Check tool status (native/container)
-bin/coldcase container status  # Check Docker status
-bin/coldcase --help           # Grouped help: ColdCase commands + Forensics tools
+coldcase list             # Show all 118+ tools
+coldcase check            # Check tool status (native/container)
+coldcase container status  # Check Docker status
+coldcase --help           # Grouped help: ColdCase commands + Forensics tools
 ```
 
 ## Web Console
@@ -108,15 +108,15 @@ through the same runner, session logging and catalog whitelist as the CLI.
 ### Starting the server
 
 ```bash
-# Build once
-go build -o bin/coldcase ./cmd/coldcase
+# Install once (or: go build -o coldcase ./cmd/coldcase for a local binary)
+go install ./cmd/coldcase
 
 # Start the web console (binds to 127.0.0.1:8765 by default)
-bin/coldcase serve
+coldcase serve
 
 # Custom port / host
-bin/coldcase serve --port 9000
-bin/coldcase serve --host localhost --port 9000
+coldcase serve --port 9000
+coldcase serve --host localhost --port 9000
 ```
 
 Then open **http://127.0.0.1:8765** in your browser.
@@ -166,20 +166,20 @@ confirmation checkbox before they will execute.
 - Sessions live under `~/.coldcase/sessions`; the console can lock, seal and
   export them like the CLI.
 - If no signing keys exist yet, the **Sessions** tab offers a one-click
-  **Generate signing keys** action (equivalent to `bin/coldcase keys generate`).
+  **Generate signing keys** action (equivalent to `coldcase keys generate`).
 
 ### Hybrid Engine Examples
 If `tshark` is not on your host, ColdCase runs it via the container automatically:
 ```bash
 # Path /evidence/dump.pcap is auto-detected and mounted to the container
-bin/coldcase tshark -r /evidence/dump.pcap -Y "http"
+coldcase tshark -r /evidence/dump.pcap -Y "http"
 ```
 
 ### Plaso Timeline Analysis
 ```bash
-bin/coldcase plaso parse disk.img      # log2timeline
-bin/coldcase plaso sort storage.plaso  # psort
-bin/coldcase plaso parsers --list      # list available parsers
+coldcase plaso parse disk.img      # log2timeline
+coldcase plaso sort storage.plaso  # psort
+coldcase plaso parsers --list      # list available parsers
 ```
 
 ### Forensic Session Management
@@ -188,29 +188,29 @@ ColdCase provides a forensically sound environment by logging every action.
 
 ```bash
 # 1. Setup investigator keys
-bin/coldcase keys generate
+coldcase keys generate
 
 # 2. Start a signed forensic session
-eval $(bin/coldcase session start case-001 --sign)
+eval $(coldcase session start case-001 --sign)
 
 # 3. Run any tool - execution & hashes are logged automatically
-bin/coldcase pdfid malware.pdf
+coldcase pdfid malware.pdf
 
 # 4. Verify cryptographic integrity
-bin/coldcase session verify case-001
+coldcase session verify case-001
 
 # 5. Lock or PERMANENTLY SEAL the session
-bin/coldcase session lock case-001
-bin/coldcase session seal case-001
+coldcase session lock case-001
+coldcase session seal case-001
 
 # 6. Export the investigation report
-bin/coldcase session export case-001 --format html > report.html
+coldcase session export case-001 --format html > report.html
 ```
 
 ### Container Management
 ```bash
-bin/coldcase container build  # Build the forensics image locally
-bin/coldcase container shell  # Open a bash shell inside the container
+coldcase container build  # Build the forensics image locally
+coldcase container shell  # Open a bash shell inside the container
 ```
 
 ## Architecture
