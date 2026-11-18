@@ -11,11 +11,9 @@ run:
 linters:
   enable:
     - gosec
-
-issues:
-  # Findings are only ever excluded with a documented justification.
-  exclude-rules:
-    # Tests legitimately use weak randomness and fixed fixtures.
-    - path: _test\.go
-      linters:
-        - gosec
+  exclusions:
+    rules:
+      # Tests legitimately use weak randomness and fixed fixtures.
+      - path: _test\.go
+        linters:
+          - gosec

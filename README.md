@@ -2,7 +2,7 @@
 
 # ColdCase: Integrated Digital Forensics Tool
 
-[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![License](https://img.shields.io/badge/License-CC0%201.0-lightgrey.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-informational)](https://github.com/Fakechippies/ColdCase)
 [![Docker](https://img.shields.io/badge/Docker-Hybrid%20Runtime-blue?style=flat&logo=docker)](https://www.docker.com/)

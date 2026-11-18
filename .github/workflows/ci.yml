@@ -48,8 +48,13 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: go test
+      # -race requires cgo (gcc), which Windows runners don't ship.
+      - name: go test (race)
+        if: runner.os != 'Windows'
         run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+      - name: go test
+        if: runner.os == 'Windows'
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
       - name: upload coverage
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
