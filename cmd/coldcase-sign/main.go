@@ -69,14 +69,14 @@ func signCmd(args []string) {
 	}
 	path := fs.Arg(0)
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // the artifact path is the explicit CLI argument
 	if err != nil {
 		fatal(err.Error())
 	}
 
 	sig := session.Sign(loadSigningKey(), data)
 	out := path + ".sig"
-	if err := os.WriteFile(out, []byte(sig), 0644); err != nil {
+	if err := os.WriteFile(out, []byte(sig), 0644); err != nil { //nolint:gosec // signatures are public data
 		fatal(err.Error())
 	}
 
@@ -104,11 +104,11 @@ func verifyCmd(args []string) {
 	}
 
 	filePath, sigPath := fs.Arg(0), fs.Arg(1)
-	data, err := os.ReadFile(filePath)
+	data, err := os.ReadFile(filePath) //nolint:gosec // explicit CLI arguments, not ambient paths
 	if err != nil {
 		fatal(err.Error())
 	}
-	sig, err := os.ReadFile(sigPath)
+	sig, err := os.ReadFile(sigPath) //nolint:gosec // explicit CLI arguments, not ambient paths
 	if err != nil {
 		fatal(err.Error())
 	}
