@@ -1,78 +1,190 @@
 {{define "content"}}
+<section class="page-intro">
+  <div class="page-intro__copy">
+    <p class="eyebrow">Operations overview</p>
+    <h2>Forensic posture at a glance</h2>
+    <p>Read-only telemetry for this workstation: tool coverage, session integrity and command throughput. Actions live on their own tabs.</p>
+  </div>
+  <div class="pillrow">
+    <span class="pill {{if .ContainerReady}}pill--ok{{else}}pill--muted{{end}}">
+      <span class="dot {{if .ContainerReady}}dot--ok{{else}}dot--off{{end}}" aria-hidden="true"></span>
+      {{if .ContainerReady}}{{.Runtime}} ready{{else}}no container runtime{{end}}
+    </span>
+    <span class="pill {{if .KeysReady}}pill--ok{{else}}pill--muted{{end}}">
+      <span class="dot {{if .KeysReady}}dot--ok{{else}}dot--off{{end}}" aria-hidden="true"></span>
+      {{if .KeysReady}}Ed25519 signing{{else}}unsigned mode{{end}}
+    </span>
+  </div>
+</section>
+
 <section class="grid grid--stats">
-  <article class="stat card">
-    <span class="stat__label">Tools</span>
+  <article class="stat">
+    <div class="stat__top">
+      <span class="stat__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"></path><circle cx="19" cy="18" r="2"></circle></svg></span>
+      <span class="stat__label">Tools</span>
+    </div>
     <span class="stat__value">{{.ToolCount}}</span>
-    <span class="stat__meta">{{.CategoryCount}} categories</span>
+    <span class="stat__meta">{{.CategoryCount}} categories in the catalog</span>
   </article>
-  <article class="stat card">
-    <span class="stat__label">Native</span>
+  <article class="stat">
+    <div class="stat__top">
+      <span class="stat__icon stat__icon--orange" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"></path></svg></span>
+      <span class="stat__label">Native</span>
+    </div>
     <span class="stat__value">{{.NativeCount}}</span>
-    <span class="stat__meta">installed on host</span>
+    <span class="stat__meta">{{.AvailSummary.NativePct}}% run without a container</span>
   </article>
-  <article class="stat card">
-    <span class="stat__label">Container fallback</span>
-    <span class="stat__value">{{if .ContainerReady}}{{.ContainerCount}}{{else}}0{{end}}</span>
-    <span class="stat__meta">{{if .Runtime}}via {{.Runtime}} · {{.Image}}{{else}}no runtime detected{{end}}</span>
+  <article class="stat">
+    <div class="stat__top">
+      <span class="stat__icon stat__icon--blue" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path></svg></span>
+      <span class="stat__label">Container fallback</span>
+    </div>
+    <span class="stat__value">{{.ContainerCount}}</span>
+    <span class="stat__meta">{{if .ContainerReady}}via {{.Runtime}} · {{.Image}}{{else}}no runtime detected{{end}}</span>
   </article>
-  <article class="stat card">
-    <span class="stat__label">Sessions</span>
+  <article class="stat">
+    <div class="stat__top">
+      <span class="stat__icon stat__icon--green" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7l9 5 9-5-9-5Z"></path><path d="m3 12 9 5 9-5"></path><path d="m3 17 9 5 9-5"></path></svg></span>
+      <span class="stat__label">Sessions</span>
+    </div>
     <span class="stat__value">{{.SessionCount}}</span>
-    <span class="stat__meta">{{if .KeysReady}}signing enabled{{else}}generate keys to sign{{end}}</span>
+    <span class="stat__meta">{{if .KeysReady}}signed chain of custody{{else}}keys not generated yet{{end}}</span>
+  </article>
+</section>
+
+<section class="grid grid--charts">
+  <article class="card">
+    <div class="card__head">
+      <div><h2>Tool availability</h2><p class="card__sub">Native vs container fallback</p></div>
+      <span class="count">{{.AvailSummary.Total}} tools</span>
+    </div>
+    <div class="donut-wrap">
+      {{template "donut" .AvailSummary}}
+      {{template "availlegend" .AvailSummary}}
+    </div>
+  </article>
+
+  <article class="card">
+    <div class="card__head">
+      <div><h2>Session states</h2><p class="card__sub">Chain-of-custody lifecycle</p></div>
+      <span class="count">{{.SessionCount}} total</span>
+    </div>
+    <ul class="meterlist">
+      {{range .StateStats}}
+      <li class="meterrow">
+        <div class="meterrow__top"><span class="meterrow__name">{{.Name}}</span><b>{{.Count}}</b></div>
+        <svg class="meter" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
+          <rect class="meter__track" x="0" y="0" width="100" height="8" rx="2"></rect>
+          {{if .Count}}<rect class="meter__seg seg--{{.Class}}" x="0" y="0" width="{{.Pct}}" height="8" rx="2"></rect>{{end}}
+        </svg>
+      </li>
+      {{end}}
+    </ul>
+    <p class="card__footnote">Locked and sealed sessions reject new tool executions.</p>
+  </article>
+
+  <article class="card">
+    <div class="card__head">
+      <div><h2>Command activity</h2><p class="card__sub">Signed entries per day</p></div>
+      <span class="count">7 days</span>
+    </div>
+    <svg class="bars" viewBox="0 0 100 82" role="img" aria-label="Commands logged per day over the last seven days">
+      {{range .Activity}}
+      <rect class="bars__bar" x="{{.X}}" y="{{.Y}}" width="8" height="{{.H}}" rx="1.5"></rect>
+      {{if .Count}}<text class="bars__value" x="{{.X}}" y="{{sub .Y 3}}" text-anchor="middle">{{.Count}}</text>{{end}}
+      <text class="bars__label" x="{{.X}}" y="80" text-anchor="middle">{{.Label}}</text>
+      {{end}}
+    </svg>
+  </article>
+
+  <article class="card">
+    <div class="card__head">
+      <div><h2>Most-run tools</h2><p class="card__sub">Across all sessions</p></div>
+      <span class="count">{{len .TopTools}}</span>
+    </div>
+    {{if .TopTools}}
+    <ul class="usage">
+      {{range .TopTools}}
+      <li class="usage__row">
+        <div class="usage__top"><code>{{.Name}}</code><b>{{.Count}}</b></div>
+        <svg class="meter" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">
+          <rect class="meter__track" x="0" y="0" width="100" height="6" rx="2"></rect>
+          <rect class="usage__fill" x="0" y="0" width="{{.Pct}}" height="6" rx="2"></rect>
+        </svg>
+      </li>
+      {{end}}
+    </ul>
+    {{else}}
+    <p class="empty">No tool executions logged yet.</p>
+    {{end}}
   </article>
 </section>
 
 <section class="card">
   <div class="card__head">
-    <h2>Investigation workflow</h2>
+    <div><h2>Category coverage</h2><p class="card__sub">How each discipline is served on this host</p></div>
+    <span class="count">{{.AvailSummary.Available}} / {{.AvailSummary.Total}} available</span>
   </div>
-  <ol class="steps">
-    <li><span class="steps__n">1</span><div><strong>Create a session</strong><p>Start a signed, auditable chain of custody.</p></div></li>
-    <li><span class="steps__n">2</span><div><strong>Run tools</strong><p>Pick a tool from the catalog and stream its output live.</p></div></li>
-    <li><span class="steps__n">3</span><div><strong>Verify &amp; export</strong><p>Check Ed25519 signatures and export a JSON/Markdown/HTML report.</p></div></li>
-  </ol>
-  <div class="row row--gap">
-    <a class="btn btn--primary" href="/sessions">Manage sessions</a>
-    <a class="btn" href="/tools">Browse tools</a>
-    <a class="btn" href="/status">Check availability</a>
+  <div class="coverage">
+    {{range .CategoryStats}}
+    <div class="coverage__row">
+      <span class="coverage__icon" aria-hidden="true">{{categoryIcon .Name}}</span>
+      <span class="coverage__name">{{.Name}}</span>
+      {{template "coveragebar" .}}
+      <span class="coverage__count">{{.Available}}/{{.Total}}</span>
+    </div>
+    {{end}}
   </div>
 </section>
 
-<section class="card">
-  <div class="card__head">
-    <h2>Recent sessions</h2>
-    <a class="link" href="/sessions">View all</a>
-  </div>
-  {{if .RecentSessions}}
-  <div class="table-wrap">
-    <table class="table">
-      <thead><tr><th>Session</th><th>Investigator</th><th>State</th><th>Commands</th><th>Created</th></tr></thead>
-      <tbody>
-        {{range .RecentSessions}}
-        <tr>
-          <td><a class="link" href="/sessions/{{.ID}}">{{.ID}}</a></td>
-          <td>{{.Investigator}}</td>
-          <td>{{template "statebadge" .State}}</td>
-          <td>{{.CommandCount}}</td>
-          <td class="mono">{{fmtTime .Created}}</td>
-        </tr>
-        {{end}}
-      </tbody>
-    </table>
-  </div>
-  {{else}}
-  <p class="empty">No sessions yet. <a class="link" href="/sessions">Create one</a> to begin logging.</p>
-  {{end}}
-</section>
+<section class="grid grid--split">
+  <article class="card">
+    <div class="card__head">
+      <div><h2>Recent sessions</h2><p class="card__sub">Newest first</p></div>
+      <a class="link" href="/sessions">View all</a>
+    </div>
+    {{if .RecentSessions}}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Session</th><th>State</th><th>Commands</th><th>Created</th></tr></thead>
+        <tbody>
+          {{range .RecentSessions}}
+          <tr>
+            <td><a class="link mono" href="/sessions/{{.ID}}">{{.ID}}</a></td>
+            <td>{{template "statebadge" .State}}</td>
+            <td class="mono">{{.CommandCount}}</td>
+            <td class="mono muted">{{fmtTime .Created}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+    <p class="empty">No sessions yet. Create one from the Sessions tab to begin logging.</p>
+    {{end}}
+  </article>
 
-<section class="card card--note">
-  <div class="card__head"><h2>Security posture</h2></div>
-  <ul class="ticks">
-    <li>Bound to the loopback interface by default.</li>
-    <li>Tool names are validated against the catalog; arguments are passed as arrays — never through a shell.</li>
-    <li>All state-changing requests require a CSRF token.</li>
-    <li>Root-needing tools require explicit confirmation before execution.</li>
-    <li>Tools run through the same runner as the CLI, so session audit logging is preserved.</li>
-  </ul>
+  <article class="card">
+    <div class="card__head">
+      <div><h2>Latest commands</h2><p class="card__sub">Audit trail preview</p></div>
+      <span class="count">{{len .RecentCommands}}</span>
+    </div>
+    {{if .RecentCommands}}
+    <ul class="feed">
+      {{range .RecentCommands}}
+      <li class="feed__item">
+        <span class="feed__dot {{if eq .ExitCode 0}}is-ok{{else}}is-bad{{end}}" aria-hidden="true"></span>
+        <div class="feed__body">
+          <div class="feed__line"><code>{{.Command}}</code><span class="muted">#{{.Index}} · {{.Session}}</span></div>
+          <time class="feed__time">{{fmtTime .Time}}</time>
+        </div>
+        <span class="feed__dur">{{fmtDuration .DurationMS}}</span>
+      </li>
+      {{end}}
+    </ul>
+    {{else}}
+    <p class="empty">No commands logged yet.</p>
+    {{end}}
+  </article>
 </section>
 {{end}}

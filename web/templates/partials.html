@@ -1,12 +1,91 @@
-{{define "statebadge"}}<span class="badge badge--state badge--{{.}}">{{.}}</span>{{end}}
+{{define "statebadge"}}<span class="badge badge--state badge--{{.}}"><span class="dot dot--{{.}}" aria-hidden="true"></span>{{.}}</span>{{end}}
 
 {{define "availbadge"}}
-  {{if .Native}}<span class="badge badge--ok" title="Available natively on PATH">native</span>
-  {{else if .Container}}<span class="badge badge--info" title="Available via container fallback">container</span>
-  {{else}}<span class="badge badge--danger" title="Not available on this host">unavailable</span>{{end}}
+  {{if .Native}}<span class="badge badge--ok" title="Available natively on PATH"><span class="dot dot--ok" aria-hidden="true"></span>native</span>
+  {{else if .Container}}<span class="badge badge--info" title="Available via container fallback"><span class="dot dot--info" aria-hidden="true"></span>container</span>
+  {{else}}<span class="badge badge--danger" title="Not available on this host"><span class="dot dot--danger" aria-hidden="true"></span>missing</span>{{end}}
 {{end}}
 
 {{define "sigbadge"}}
   {{if .Present}}{{if .Valid}}<span class="badge badge--ok" title="Ed25519 signature verified">valid</span>{{else}}<span class="badge badge--danger" title="Signature did not verify">invalid</span>{{end}}
   {{else}}<span class="badge badge--muted">unsigned</span>{{end}}
+{{end}}
+
+{{define "donut"}}
+<div class="donut">
+  <svg viewBox="0 0 140 140" role="img" aria-label="{{.Available}} of {{.Total}} tools available">
+    <circle class="donut__track" cx="70" cy="70" r="54"></circle>
+    <g transform="rotate(-90 70 70)">
+      {{range .Donut}}
+      <circle class="donut__seg {{.Class}}" cx="70" cy="70" r="54" stroke-dasharray="{{.Dash}} {{.Gap}}" stroke-dashoffset="{{.Offset}}"></circle>
+      {{end}}
+    </g>
+  </svg>
+  <div class="donut__center">
+    <strong>{{.AvailablePct}}%</strong>
+    <span>available</span>
+  </div>
+</div>
+{{end}}
+
+{{define "availlegend"}}
+<ul class="legend">
+  <li><span class="legend__dot legend__dot--native" aria-hidden="true"></span><span>Native</span><b>{{.Native}}</b></li>
+  <li><span class="legend__dot legend__dot--container" aria-hidden="true"></span><span>Container</span><b>{{.Container}}</b></li>
+  <li><span class="legend__dot legend__dot--missing" aria-hidden="true"></span><span>Missing</span><b>{{.Missing}}</b></li>
+</ul>
+{{end}}
+
+{{define "coveragebar"}}
+<svg class="meter" viewBox="0 0 100 8" preserveAspectRatio="none" role="img" aria-label="{{.Available}} of {{.Total}} available">
+  <rect class="meter__track" x="0" y="0" width="100" height="8" rx="2"></rect>
+  {{range .Segments}}<rect class="meter__seg {{.Class}}" x="{{.X}}" y="0" width="{{.W}}" height="8" rx="2"></rect>{{end}}
+</svg>
+{{end}}
+
+{{define "runform"}}
+<form class="runform stack" id="run-form" data-tool="{{.Tool.Name}}" data-needsroot="{{.Tool.NeedsRoot}}" data-csrf="{{.CSRF}}">
+  <div class="field">
+    <span class="field__label">Evidence file</span>
+    <label class="dropzone" for="file" id="dropzone">
+      <span class="dropzone__icon" aria-hidden="true">{{toolIcon .Tool.Binary .Tool.Name}}</span>
+      <span class="dropzone__body">
+        <strong id="file-name">Choose a file</strong>
+        <small>Optional · uploaded to ~/.coldcase/uploads and hashed into the session</small>
+      </span>
+      <span class="dropzone__action">Browse</span>
+      <input class="dropzone__input" type="file" id="file" name="file">
+    </label>
+  </div>
+
+  <div class="field">
+    <label for="args">Extra arguments <span class="hint">one per line · use <code>{file}</code> to place the upload, otherwise it is appended</span></label>
+    <textarea id="args" name="args" rows="3" spellcheck="false" placeholder="-r&#10;-Y http"></textarea>
+  </div>
+
+  <div class="field">
+    <label for="session">Session <span class="hint">optional · execution is logged &amp; signed when set</span></label>
+    <select id="session" name="session">
+      <option value="">— no session —</option>
+      {{range .SessionOptions}}
+      <option value="{{.ID}}" {{if .Selected}}selected{{end}}>{{.ID}} ({{.State}})</option>
+      {{end}}
+    </select>
+  </div>
+
+  {{if .Tool.NeedsRoot}}
+  <label class="checkbox checkbox--warn">
+    <input type="checkbox" id="confirm-root">
+    <span>I understand <strong>{{.Tool.Name}}</strong> may need elevated privileges and want to run it anyway.</span>
+  </label>
+  {{end}}
+
+  <div class="row row--between">
+    <div class="row row--gap">
+      <button class="btn btn--primary" type="submit" id="run-btn">Run tool</button>
+      <button class="btn btn--danger" type="button" id="stop-btn" disabled>Stop</button>
+    </div>
+    <span class="run-status" id="run-status" role="status"></span>
+  </div>
+</form>
 {{end}}

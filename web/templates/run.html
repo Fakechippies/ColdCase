@@ -1,0 +1,51 @@
+{{define "topactions"}}
+<a class="btn btn--ghost" href="/tools">Browse catalog</a>
+{{end}}
+
+{{define "content"}}
+<section class="card picker">
+  <form method="get" action="/run" class="picker__form" id="tool-picker-form">
+    <div class="field">
+      <label for="tool-picker">Tool</label>
+      <select id="tool-picker" name="tool">
+        {{range .Categories}}
+        <optgroup label="{{.Name}}">
+          {{range .Tools}}
+          <option value="{{.Name}}" {{if eq .Name $.Tool.Name}}selected{{end}}>{{.Name}} — {{.Description}}</option>
+          {{end}}
+        </optgroup>
+        {{end}}
+      </select>
+    </div>
+    <button class="btn" type="submit">Load tool</button>
+  </form>
+</section>
+
+<section class="grid grid--run">
+  <article class="card">
+    <div class="card__head">
+      <div class="runhead">
+        <span class="runhead__icon" aria-hidden="true">{{toolIcon .Tool.Binary .Tool.Name}}</span>
+        <div>
+          <h2>{{.Tool.Name}}</h2>
+          <p class="card__sub">{{.Tool.Description}}</p>
+        </div>
+      </div>
+      {{template "availbadge" .Avail}}
+    </div>
+    {{template "runform" .}}
+    <p class="card__footnote">Uploads are written to <code>~/.coldcase/uploads</code>. Use <code>{file}</code> in the arguments if the tool expects the path somewhere other than the end.</p>
+  </article>
+
+  <article class="card">
+    <div class="card__head">
+      <div><h2>Live output</h2><p class="card__sub">stdout and stderr, streamed from the runner</p></div>
+      <div class="row row--gap">
+        <button class="btn btn--ghost btn--sm" type="button" id="wrap-toggle" aria-pressed="true">Wrap</button>
+        <button class="btn btn--ghost btn--sm" type="button" id="clear-btn">Clear</button>
+      </div>
+    </div>
+    <pre class="terminal terminal--tall" id="terminal" aria-live="polite" aria-label="Tool output"><span class="terminal__placeholder">Output will appear here when you run the tool.</span></pre>
+  </article>
+</section>
+{{end}}

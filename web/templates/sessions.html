@@ -5,14 +5,26 @@
   <button class="btn" type="submit">Generate signing keys</button>
 </form>
 {{else}}
-<span class="badge badge--ok">Ed25519 keys present</span>
+<span class="pill pill--ok"><span class="dot dot--ok" aria-hidden="true"></span>Ed25519 keys present</span>
 {{end}}
 {{end}}
 
 {{define "content"}}
+<section class="page-intro page-intro--tight">
+  <div class="page-intro__copy">
+    <p class="eyebrow">Chain of custody</p>
+    <h2>Signed sessions</h2>
+    <p>Every execution is recorded against a session, hashed and — when keys are present — signed with Ed25519.</p>
+  </div>
+  <div class="ministats" role="list">
+    <div class="ministat" role="listitem"><span>Total</span><strong>{{len .Sessions}}</strong></div>
+    <div class="ministat" role="listitem"><span>Signing</span><strong>{{if .KeysReady}}on{{else}}off{{end}}</strong></div>
+  </div>
+</section>
+
 <section class="grid grid--split">
   <article class="card">
-    <div class="card__head"><h2>New session</h2></div>
+    <div class="card__head"><div><h2>New session</h2><p class="card__sub">Start an auditable investigation</p></div></div>
     <form method="post" action="/sessions" class="stack">
       <input type="hidden" name="csrf" value="{{.CSRF}}">
       <div class="field">
@@ -38,18 +50,18 @@
   </article>
 
   <article class="card">
-    <div class="card__head"><h2>How sessions work</h2></div>
-    <ul class="ticks">
-      <li><strong>Unlocked</strong> — tools run and are logged to the session.</li>
-      <li><strong>Locked</strong> — read-only; execution under the session is refused.</li>
-      <li><strong>Sealed</strong> — permanently closed with a final signature.</li>
-      <li>Each command entry is signed over index, timestamp, full command and working directory.</li>
+    <div class="card__head"><div><h2>Lifecycle</h2><p class="card__sub">What each state means</p></div></div>
+    <ul class="timeline">
+      <li><span class="timeline__dot timeline__dot--unlocked" aria-hidden="true"></span><div><strong>Unlocked</strong><p>Tools run and are logged to the session.</p></div></li>
+      <li><span class="timeline__dot timeline__dot--locked" aria-hidden="true"></span><div><strong>Locked</strong><p>Read-only; execution under the session is refused.</p></div></li>
+      <li><span class="timeline__dot timeline__dot--sealed" aria-hidden="true"></span><div><strong>Sealed</strong><p>Permanently closed with a final session signature.</p></div></li>
     </ul>
+    <p class="card__footnote">Each command signature covers index, timestamp, full command and working directory.</p>
   </article>
 </section>
 
 <section class="card">
-  <div class="card__head"><h2>Sessions</h2><span class="count">{{len .Sessions}}</span></div>
+  <div class="card__head"><div><h2>All sessions</h2><p class="card__sub">Stored under ~/.coldcase/sessions</p></div><span class="count">{{len .Sessions}}</span></div>
   {{if .Sessions}}
   <div class="table-wrap">
     <table class="table">
@@ -57,12 +69,12 @@
       <tbody>
         {{range .Sessions}}
         <tr>
-          <td><a class="link" href="/sessions/{{.ID}}">{{.ID}}</a></td>
-          <td>{{.Investigator}}</td>
+          <td><a class="link mono" href="/sessions/{{.ID}}">{{.ID}}</a></td>
+          <td>{{if .Investigator}}{{.Investigator}}{{else}}<span class="muted">—</span>{{end}}</td>
           <td>{{template "statebadge" .State}}</td>
-          <td>{{if .Signed}}<span class="mark mark--ok">yes</span>{{else}}<span class="mark mark--no">no</span>{{end}}</td>
-          <td>{{.CommandCount}}</td>
-          <td class="mono">{{fmtTime .Created}}</td>
+          <td>{{if .Signed}}<span class="badge badge--ok">signed</span>{{else}}<span class="badge badge--muted">unsigned</span>{{end}}</td>
+          <td class="mono">{{.CommandCount}}</td>
+          <td class="mono muted">{{fmtTime .Created}}</td>
         </tr>
         {{end}}
       </tbody>

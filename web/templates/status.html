@@ -1,38 +1,85 @@
 {{define "content"}}
-<section class="card">
-  <div class="card__head">
-    <h2>Container runtime</h2>
-  </div>
-  {{if .ContainerReady}}
-  <div class="kv"><span class="kv__k">Runtime</span><code class="kv__v">{{.Runtime}}</code></div>
-  <div class="kv"><span class="kv__k">Image</span><code class="kv__v">{{.Image}}</code></div>
-  <p class="muted">Tools without a native binary will run inside this image automatically.</p>
-  {{else}}
-  <p class="empty">No container runtime (docker/podman) detected. Only natively installed tools can run.</p>
-  {{end}}
+<section class="grid grid--charts">
+  <article class="card">
+    <div class="card__head">
+      <div><h2>Coverage</h2><p class="card__sub">Tool-level availability on this host</p></div>
+      <span class="count">{{.AvailSummary.Available}} / {{.AvailSummary.Total}}</span>
+    </div>
+    <div class="donut-wrap">
+      {{template "donut" .AvailSummary}}
+      {{template "availlegend" .AvailSummary}}
+    </div>
+    <div class="metercards">
+      <div class="metercard"><span>Native</span><strong>{{.AvailSummary.NativePct}}%</strong></div>
+      <div class="metercard"><span>Container</span><strong>{{.AvailSummary.ContainerPct}}%</strong></div>
+      <div class="metercard"><span>Missing</span><strong>{{.AvailSummary.MissingPct}}%</strong></div>
+    </div>
+    <div class="runtimebox">
+      <div class="runtimebox__head">Execution paths</div>
+      <div class="runtimebox__row"><span>Native binaries</span><b>{{.AvailSummary.Native}}</b></div>
+      <div class="runtimebox__row"><span>Container fallback</span><b>{{.AvailSummary.Container}}</b></div>
+      <div class="runtimebox__row"><span>Runtime</span><code>{{if .ContainerReady}}{{.Runtime}}{{else}}none{{end}}</code></div>
+      <div class="runtimebox__row"><span>Image</span><code>{{.Image}}</code></div>
+    </div>
+  </article>
+
+  <article class="card">
+    <div class="card__head">
+      <div><h2>By category</h2><p class="card__sub">Where coverage is strong or thin</p></div>
+      <span class="count">{{.CategoryCount}} categories</span>
+    </div>
+    <div class="coverage coverage--dense">
+      {{range .CategoryStats}}
+      <div class="coverage__row">
+        <span class="coverage__icon" aria-hidden="true">{{categoryIcon .Name}}</span>
+        <span class="coverage__name">{{.Name}}</span>
+        {{template "coveragebar" .}}
+        <span class="coverage__count">{{.Available}}/{{.Total}}</span>
+      </div>
+      {{end}}
+    </div>
+  </article>
 </section>
 
 <section class="card">
   <div class="card__head">
-    <h2>Tool availability</h2>
-    <span class="count">{{.AvailableCount}} / {{len .Rows}} available</span>
+    <div><h2>Every tool</h2><p class="card__sub">Filter by execution mode</p></div>
+    <div class="filterbar filterbar--inline" role="group" aria-label="Filter availability">
+      <button class="chip is-active" type="button" data-avail-filter="all">All <span class="chip__count">{{len .Rows}}</span></button>
+      <button class="chip" type="button" data-avail-filter="native">Native <span class="chip__count">{{.AvailSummary.Native}}</span></button>
+      <button class="chip" type="button" data-avail-filter="container">Container <span class="chip__count">{{.AvailSummary.Container}}</span></button>
+      <button class="chip" type="button" data-avail-filter="missing">Missing <span class="chip__count">{{.AvailSummary.Missing}}</span></button>
+    </div>
   </div>
-  <div class="table-wrap">
-    <table class="table">
+
+  <div class="table-tools">
+    <label class="sr-only" for="avail-search">Search tools</label>
+    <span class="search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg></span>
+    <input id="avail-search" type="search" placeholder="Search by tool, binary or category…" autocomplete="off">
+  </div>
+
+  <div class="table-wrap table-wrap--scroll">
+    <table class="table" id="avail-table">
       <thead><tr><th>Tool</th><th>Category</th><th>Binary</th><th>Native</th><th>Container</th><th>Result</th></tr></thead>
       <tbody>
         {{range .Rows}}
-        <tr>
-          <td><a class="link" href="/tools/{{.Name}}">{{.Name}}</a></td>
+        <tr data-avail="{{if .Native}}native{{else if .ContainerReady}}container{{else}}missing{{end}}" data-search="{{.Name}} {{.Binary}} {{.Category}}">
+          <td>
+            <span class="tabletool">
+              <span class="tabletool__icon" aria-hidden="true">{{toolIcon .Binary .Name}}</span>
+              <a class="link" href="/tools/{{.Name}}">{{.Name}}</a>
+            </span>
+          </td>
           <td class="muted">{{.Category}}</td>
           <td class="mono">{{.Binary}}</td>
-          <td>{{if .Native}}<span class="mark mark--ok">yes</span>{{else}}<span class="mark mark--no">no</span>{{end}}</td>
-          <td>{{if .ContainerReady}}<span class="mark mark--ok">yes</span>{{else}}<span class="mark mark--no">no</span>{{end}}</td>
+          <td><span class="ind {{if .Native}}ind--ok{{else}}ind--off{{end}}"><span class="dot {{if .Native}}dot--ok{{else}}dot--off{{end}}" aria-hidden="true"></span>{{if .Native}}yes{{else}}no{{end}}</span></td>
+          <td><span class="ind {{if .ContainerReady}}ind--info{{else}}ind--off{{end}}"><span class="dot {{if .ContainerReady}}dot--info{{else}}dot--off{{end}}" aria-hidden="true"></span>{{if .ContainerReady}}yes{{else}}no{{end}}</span></td>
           <td>{{if .Available}}<span class="badge badge--ok">available</span>{{else}}<span class="badge badge--danger">missing</span>{{end}}</td>
         </tr>
         {{end}}
       </tbody>
     </table>
   </div>
+  <p class="empty" id="avail-empty" hidden>No tools match that filter.</p>
 </section>
 {{end}}

@@ -82,6 +82,7 @@ func (s *Server) ListenAndServe() error {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /{$}", s.handleDashboard)
+	s.mux.HandleFunc("GET /run", s.handleRunPage)
 	s.mux.HandleFunc("GET /tools", s.handleTools)
 	s.mux.HandleFunc("GET /tools/{name}", s.handleTool)
 	s.mux.HandleFunc("GET /status", s.handleStatus)
@@ -164,7 +165,12 @@ func (s *Server) checkCSRF(r *http.Request) error {
 
 func parseTemplates() (map[string]*template.Template, error) {
 	funcs := template.FuncMap{
-		"fmtTime": func(t time.Time) string { return t.Format("2006-01-02 15:04:05") },
+		"fmtTime":      func(t time.Time) string { return t.Format("2006-01-02 15:04:05") },
+		"fmtDuration":  fmtDuration,
+		"toolIcon":     toolIcon,
+		"categoryIcon": categoryIcon,
+		"add":          func(a, b int) int { return a + b },
+		"sub":          func(a, b int) int { return a - b },
 		"shortHash": func(s string) string {
 			if len(s) > 16 {
 				return s[:16] + "…"

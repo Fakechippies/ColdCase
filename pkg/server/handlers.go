@@ -3,11 +3,16 @@ package server
 import (
 	"crypto/ed25519"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"coldcase/pkg/catalog"
 	"coldcase/pkg/runner"
@@ -23,26 +28,59 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	d := s.newData("Dashboard", "dashboard", r)
 	d.Subtitle = "Local-only forensics console"
 
-	sums := s.loadSummaries()
-	d.SessionCount = len(sums)
-	if len(sums) > 5 {
-		sums = sums[:5]
-	}
-	d.RecentSessions = sums
+	sessions := s.loadSessions()
+	d.SessionCount = len(sessions)
+	d.StateStats = buildStateStats(sessions)
+	d.Activity = buildActivity(sessions)
+	d.TopTools = buildTopTools(sessions)
+	d.RecentCommands = buildRecentCommands(sessions, 8)
 
-	seen := map[string]bool{}
-	for _, t := range catalog.All() {
-		if seen[t.Binary] {
-			continue
-		}
-		seen[t.Binary] = true
+	recent := summariesOf(sessions)
+	if len(recent) > 6 {
+		recent = recent[:6]
+	}
+	d.RecentSessions = recent
+
+	d.AvailSummary, d.CategoryStats = gatherAvailability(catalog.Categories())
+	d.NativeCount = d.AvailSummary.Native
+	d.ContainerCount = d.AvailSummary.Container
+
+	s.render(w, "dashboard.html", d)
+}
+
+// handleRunPage renders the standalone runner: pick a tool, attach evidence,
+// choose a session and stream output. It deliberately lives outside the
+// dashboard so the dashboard stays a read-only overview.
+func (s *Server) handleRunPage(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimSpace(r.URL.Query().Get("tool"))
+	t, ok := catalog.Find(name)
+	if !ok {
+		t = defaultTool()
+	}
+
+	d := s.newData("Run Tool", "run", r)
+	d.Subtitle = "Pick a tool, attach evidence and stream output live"
+	d.Tool = t
+	d.Categories = catalog.Categories()
+	d.SessionOptions = s.loadSessionOptions("")
+	av := runner.CheckAvailability(t.Binary)
+	d.Avail = availabilityView{Native: av.Native, Container: av.Container}
+	s.render(w, "run.html", d)
+}
+
+// defaultTool picks a natively available tool so the runner opens with
+// something the user can execute immediately.
+func defaultTool() catalog.Tool {
+	all := catalog.All()
+	for _, t := range all {
 		if tools.CheckToolInstalled(t.Binary) {
-			d.NativeCount++
-		} else if d.ContainerReady {
-			d.ContainerCount++
+			return t
 		}
 	}
-	s.render(w, "dashboard.html", d)
+	if len(all) > 0 {
+		return all[0]
+	}
+	return catalog.Tool{}
 }
 
 func (s *Server) handleTools(w http.ResponseWriter, r *http.Request) {
@@ -54,11 +92,22 @@ func (s *Server) handleTools(w http.ResponseWriter, r *http.Request) {
 	d.Query = raw
 	d.Availability = map[string]availabilityView{}
 
+	cache := map[string]bool{}
 	for _, c := range catalog.Categories() {
 		var kept []catalog.Tool
 		for _, t := range c.Tools {
-			av := runner.CheckAvailability(t.Binary)
-			d.Availability[t.Name] = availabilityView{Native: av.Native, Container: av.Container}
+			native, ok := cache[t.Binary]
+			if !ok {
+				native = tools.CheckToolInstalled(t.Binary)
+				cache[t.Binary] = native
+			}
+			av := availabilityView{Native: native, Container: !native && d.ContainerReady}
+			if av.Native || av.Container {
+				d.AvailableCount++
+			} else {
+				d.MissingCount++
+			}
+			d.Availability[t.Name] = av
 			if q == "" || strings.Contains(strings.ToLower(t.Name+" "+t.Description+" "+t.Binary), q) {
 				kept = append(kept, t)
 			}
@@ -85,6 +134,18 @@ func (s *Server) handleTool(w http.ResponseWriter, r *http.Request) {
 	d.Tool = t
 	d.Avail = availabilityView{Native: av.Native, Container: av.Container}
 	d.SessionOptions = s.loadSessionOptions("")
+
+	for _, c := range catalog.Categories() {
+		if c.Name != t.Category {
+			continue
+		}
+		for _, other := range c.Tools {
+			if other.Name == t.Name || len(d.Related) >= 6 {
+				continue
+			}
+			d.Related = append(d.Related, other)
+		}
+	}
 	s.render(w, "tool.html", d)
 }
 
@@ -92,20 +153,29 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	d := s.newData("Availability", "status", r)
 	d.Subtitle = "Native and container availability for every catalog tool"
 
-	for _, t := range catalog.All() {
-		av := runner.CheckAvailability(t.Binary)
-		row := statusRow{
-			Name:           t.Name,
-			Category:       t.Category,
-			Binary:         t.Binary,
-			Native:         av.Native,
-			ContainerReady: av.Container,
-			Available:      av.Available(),
+	cats := catalog.Categories()
+	d.AvailSummary, d.CategoryStats = gatherAvailability(cats)
+	d.AvailableCount = d.AvailSummary.Available
+	d.MissingCount = d.AvailSummary.Missing
+
+	cache := map[string]bool{}
+	for _, c := range cats {
+		for _, t := range c.Tools {
+			native, ok := cache[t.Binary]
+			if !ok {
+				native = tools.CheckToolInstalled(t.Binary)
+				cache[t.Binary] = native
+			}
+			containerReady := !native && d.ContainerReady
+			d.Rows = append(d.Rows, statusRow{
+				Name:           t.Name,
+				Category:       c.Name,
+				Binary:         t.Binary,
+				Native:         native,
+				ContainerReady: containerReady,
+				Available:      native || containerReady,
+			})
 		}
-		if row.Available {
-			d.AvailableCount++
-		}
-		d.Rows = append(d.Rows, row)
 	}
 	s.render(w, "status.html", d)
 }
@@ -260,21 +330,78 @@ type runRequest struct {
 	Confirm bool     `json:"confirm"`
 }
 
+// maxUpload caps a single multipart run request (file + fields). Forensics
+// images can be large, so the ceiling is generous; the browser streams the
+// file and the server copies it straight to disk.
+const maxUpload = int64(4) << 30
+
 // handleRun executes a whitelisted tool and streams stdout/stderr to the
 // client as Server-Sent Events. Execution always flows through pkg/runner so
 // session audit logging is preserved.
+//
+// The runner accepts either a JSON body (legacy) or multipart/form-data with a
+// "file" part. Uploaded evidence is persisted under ~/.coldcase/uploads so the
+// session's SHA256 evidence record still points at a real file.
 func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 	if err := s.checkCSRF(r); err != nil {
 		writeJSONError(w, http.StatusForbidden, err.Error())
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUpload+(8<<20))
+
 	var req runRequest
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&req); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
-		return
+	uploadPath := ""
+	contentType := r.Header.Get("Content-Type")
+
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			code := http.StatusBadRequest
+			if strings.Contains(err.Error(), "too large") {
+				code = http.StatusRequestEntityTooLarge
+			}
+			writeJSONError(w, code, "invalid upload: "+err.Error())
+			return
+		}
+		defer func() {
+			if r.MultipartForm != nil {
+				_ = r.MultipartForm.RemoveAll()
+			}
+		}()
+
+		req.Tool = strings.TrimSpace(r.FormValue("tool"))
+		req.Session = strings.TrimSpace(r.FormValue("session"))
+		req.Confirm = r.FormValue("confirm") == "1" || r.FormValue("confirm") == "true"
+		if raw := r.FormValue("args"); raw != "" {
+			if err := json.Unmarshal([]byte(raw), &req.Args); err != nil {
+				writeJSONError(w, http.StatusBadRequest, "invalid args: "+err.Error())
+				return
+			}
+		}
+
+		file, header, err := r.FormFile("file")
+		switch {
+		case err == nil:
+			defer file.Close()
+			uploadPath, err = saveUpload(header.Filename, file)
+			if err != nil {
+				writeJSONError(w, http.StatusInternalServerError, "could not store upload: "+err.Error())
+				return
+			}
+			req.Args = injectFileArg(req.Args, uploadPath)
+		case errors.Is(err, http.ErrMissingFile):
+			// No attachment: some tools accept flags or stdin-friendly input.
+		default:
+			writeJSONError(w, http.StatusBadRequest, "invalid file part: "+err.Error())
+			return
+		}
+	} else {
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&req); err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
+			return
+		}
 	}
 
 	// Whitelist the tool against the catalog — never trust the client.
@@ -335,6 +462,7 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 		"mode":      mode,
 		"needsRoot": t.NeedsRoot,
 		"session":   sessionID,
+		"uploaded":  uploadPath,
 	})
 
 	outW := &sseWriter{w: w, f: flusher, event: "stdout"}
@@ -357,6 +485,73 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 		"error":  exitErr,
 		"logged": logged,
 	})
+}
+
+// saveUpload copies a browser upload into ~/.coldcase/uploads. Kept on disk so
+// the evidence hash recorded in the session still resolves to the same bytes.
+func saveUpload(name string, src io.Reader) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(home, ".coldcase", "uploads")
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return "", err
+	}
+	path := filepath.Join(dir, fmt.Sprintf("%d-%s", time.Now().UnixNano(), sanitizeFilename(name)))
+	dst, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return "", err
+	}
+	if _, err := io.Copy(dst, src); err != nil {
+		dst.Close()
+		_ = os.Remove(path)
+		return "", err
+	}
+	if err := dst.Close(); err != nil {
+		_ = os.Remove(path)
+		return "", err
+	}
+	return path, nil
+}
+
+func sanitizeFilename(name string) string {
+	base := filepath.Base(strings.TrimSpace(name))
+	var b strings.Builder
+	for _, r := range base {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9',
+			r == '.', r == '-', r == '_':
+			b.WriteRune(r)
+		case r == ' ':
+			b.WriteRune('_')
+		}
+	}
+	out := strings.Trim(b.String(), ".")
+	if out == "" {
+		out = "evidence"
+	}
+	if len(out) > 120 {
+		out = out[len(out)-120:]
+	}
+	return out
+}
+
+// injectFileArg substitutes {file} placeholders, or appends the upload path
+// when the user did not specify a position.
+func injectFileArg(args []string, path string) []string {
+	out := append([]string(nil), args...)
+	replaced := false
+	for i, a := range out {
+		if strings.Contains(a, "{file}") {
+			out[i] = strings.ReplaceAll(a, "{file}", path)
+			replaced = true
+		}
+	}
+	if !replaced {
+		out = append(out, path)
+	}
+	return out
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────────

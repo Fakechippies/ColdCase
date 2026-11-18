@@ -1,28 +1,43 @@
 {{define "topactions"}}
-<a class="btn" href="/sessions">← All sessions</a>
+<a class="btn btn--ghost" href="/sessions">← All sessions</a>
 {{end}}
 
 {{define "content"}}
 <section class="card">
   <div class="card__head">
-    <h2>{{.Session.ID}}</h2>
+    <div class="sessionhead">
+      <span class="sessionhead__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7l9 5 9-5-9-5Z"></path><path d="m3 12 9 5 9-5"></path><path d="m3 17 9 5 9-5"></path></svg></span>
+      <div>
+        <h2 class="mono">{{.Session.ID}}</h2>
+        <p class="card__sub">{{if .Session.Investigator}}{{.Session.Investigator}}{{else}}unknown investigator{{end}} · created {{fmtTime .Session.Created}}</p>
+      </div>
+    </div>
     {{template "statebadge" .Session.State}}
   </div>
-  <div class="grid grid--3">
+
+  <div class="kvlist kvlist--4">
     <div class="kv"><span class="kv__k">Investigator</span><span class="kv__v">{{if .Session.Investigator}}{{.Session.Investigator}}{{else}}<span class="muted">unknown</span>{{end}}</span></div>
     <div class="kv"><span class="kv__k">Email</span><span class="kv__v">{{if .Session.Email}}{{.Session.Email}}{{else}}<span class="muted">—</span>{{end}}</span></div>
-    <div class="kv"><span class="kv__k">Created</span><span class="kv__v mono">{{fmtTime .Session.Created}}</span></div>
     <div class="kv"><span class="kv__k">Signed</span><span class="kv__v">{{if .Session.Signed}}yes{{else}}no{{end}}</span></div>
     <div class="kv"><span class="kv__k">Encrypted</span><span class="kv__v">{{if .Session.Encrypted}}yes{{else}}no{{end}}</span></div>
     <div class="kv"><span class="kv__k">Sealed</span><span class="kv__v mono">{{if .Session.SealedAt}}{{fmtTime .Session.SealedAt}}{{else}}—{{end}}</span></div>
+    <div class="kv"><span class="kv__k">Commands</span><span class="kv__v mono">{{len .Commands}}</span></div>
+    <div class="kv"><span class="kv__k">Evidence files</span><span class="kv__v mono">{{len .Session.Evidence}}</span></div>
+    <div class="kv"><span class="kv__k">Key source</span><span class="kv__v">{{if .Session.PublicKey}}embedded{{else}}global keyring{{end}}</span></div>
   </div>
 
   <div class="verify verify--{{.VerifyState}}">
-    <strong>Signature verification:</strong>
-    {{if eq .VerifyState "ok"}}<span class="badge badge--ok">all {{len .Commands}} entries valid</span>
-    {{else if eq .VerifyState "fail"}}<span class="badge badge--danger">failed</span> <span class="muted">{{.VerifyMsg}}</span>
-    {{else if eq .VerifyState "unsigned"}}<span class="badge badge--muted">session not signed</span>
-    {{else}}<span class="badge badge--warn">unavailable</span> <span class="muted">{{.VerifyMsg}}</span>{{end}}
+    <span class="verify__icon" aria-hidden="true">
+      {{if eq .VerifyState "ok"}}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"></path></svg>
+      {{else}}<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4"></path><path d="M12 16h.01"></path><circle cx="12" cy="12" r="9"></circle></svg>{{end}}
+    </span>
+    <div>
+      <strong>Signature verification</strong>
+      {{if eq .VerifyState "ok"}}<span class="badge badge--ok">all {{len .Commands}} entries valid</span>
+      {{else if eq .VerifyState "fail"}}<span class="badge badge--danger">failed</span> <span class="muted">{{.VerifyMsg}}</span>
+      {{else if eq .VerifyState "unsigned"}}<span class="badge badge--muted">session not signed</span>
+      {{else}}<span class="badge badge--warn">unavailable</span> <span class="muted">{{.VerifyMsg}}</span>{{end}}
+    </div>
   </div>
 
   <div class="row row--gap">
@@ -33,7 +48,7 @@
 </section>
 
 <section class="card">
-  <div class="card__head"><h2>Lifecycle</h2></div>
+  <div class="card__head"><div><h2>Lifecycle</h2><p class="card__sub">State transitions</p></div></div>
   <div class="row row--gap">
     {{if eq .Session.State "locked"}}
     <form method="post" action="/sessions/{{.Session.ID}}/action" class="inline">
@@ -64,7 +79,7 @@
 </section>
 
 <section class="card">
-  <div class="card__head"><h2>Command history</h2><span class="count">{{len .Commands}}</span></div>
+  <div class="card__head"><div><h2>Command history</h2><p class="card__sub">Signed audit trail</p></div><span class="count">{{len .Commands}}</span></div>
   {{if .Commands}}
   <div class="table-wrap">
     <table class="table">
@@ -73,10 +88,10 @@
         {{range .Commands}}
         <tr>
           <td class="mono">{{.Index}}</td>
-          <td class="mono">{{fmtTime .Timestamp}}</td>
+          <td class="mono muted">{{fmtTime .Timestamp}}</td>
           <td class="mono">{{.FullCommand}}</td>
           <td>{{if eq .ExitCode 0}}<span class="mark mark--ok">{{.ExitCode}}</span>{{else}}<span class="mark mark--no">{{.ExitCode}}</span>{{end}}</td>
-          <td class="mono">{{.DurationMS}}ms</td>
+          <td class="mono">{{fmtDuration .DurationMS}}</td>
           <td>{{template "sigbadge" .Sig}}</td>
           <td>
             {{if .OutputPreview}}
@@ -97,7 +112,7 @@
 </section>
 
 <section class="card">
-  <div class="card__head"><h2>Evidence integrity (SHA256)</h2><span class="count">{{len .Session.Evidence}}</span></div>
+  <div class="card__head"><div><h2>Evidence integrity</h2><p class="card__sub">SHA256 of hashed inputs</p></div><span class="count">{{len .Session.Evidence}}</span></div>
   {{if .Session.Evidence}}
   <div class="table-wrap">
     <table class="table">
@@ -108,7 +123,7 @@
           <td class="mono break">{{.OriginalPath}}</td>
           <td class="mono">{{shortHash .SHA256}}</td>
           <td class="mono">{{.Size}}</td>
-          <td class="mono">{{fmtTime .CapturedAt}}</td>
+          <td class="mono muted">{{fmtTime .CapturedAt}}</td>
         </tr>
         {{end}}
       </tbody>
