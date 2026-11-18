@@ -4,23 +4,29 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"syscall"
+)
+
+// Creation flag values from the Win32 API (not exported by the syscall
+// package on all Go versions).
+const (
+	detachedProcess       = 0x00000008
+	createNewProcessGroup = 0x00000200
 )
 
 // detachProcess starts the child without inheriting the console window, so it
 // survives the parent terminal closing.
 func detachProcess(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.DETACHED_PROCESS | syscall.CREATE_NEW_PROCESS_GROUP,
+		CreationFlags: detachedProcess | createNewProcessGroup,
 		HideWindow:    true,
 	}
 }
 
-// pidAlive reports whether a process with this pid exists. Uses the pid file
-// name match via tasklist as a best effort.
+// pidAlive reports whether a process with this pid exists. Uses tasklist as a
+// best effort; Windows has no /proc.
 func pidAlive(pid int) bool {
 	if pid <= 0 {
 		return false
@@ -40,24 +46,28 @@ func processIsColdcase(pid int) bool {
 	if err != nil {
 		return false
 	}
-	name := strings.ToLower(strings.SplitN(string(out), ",", 2)[0])
+	fields := strings.Split(string(out), ",")
+	if len(fields) == 0 {
+		return false
+	}
+	name := strings.ToLower(strings.TrimSpace(fields[0]))
 	return strings.Contains(name, "coldcase")
 }
 
 func terminateProcess(pid int) {
-	_ = sendWindowsSignal(pid, syscall.SIGTERM)
+	_ = taskkill(pid, false)
 }
 
 func killProcess(pid int) {
-	_ = sendWindowsSignal(pid, syscall.SIGKILL)
+	_ = taskkill(pid, true)
 }
 
-// sendWindowsSignal uses taskkill; plain Signal() is not implemented for
-// os.Process on Windows.
-func sendWindowsSignal(pid int, _ os.Signal) error {
-	force := ""
-	if syscall.Signal(pid) == syscall.SIGKILL {
-		force = "/F"
+// taskkill uses the Windows utility; os.Process.Signal is not implemented on
+// Windows.
+func taskkill(pid int, force bool) error {
+	args := []string{"/PID", fmt.Sprint(pid)}
+	if force {
+		args = append(args, "/F")
 	}
-	return exec.Command("taskkill", "/PID", fmt.Sprint(pid), force).Run()
+	return exec.Command("taskkill", args...).Run()
 }

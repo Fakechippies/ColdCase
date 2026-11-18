@@ -1,0 +1,78 @@
+name: "Bug report"
+description: "Something is broken or behaving unexpectedly"
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - CLI (tool execution)
+        - Web console
+        - Sessions / chain of custody
+        - Signing & cryptography
+        - Container runtime
+        - Tool catalog
+        - CI/CD & release
+        - Docs & onboarding
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. coldcase ...
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the relevant output / error text.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Execution mode
+      description: How was the tool running?
+      options:
+        - Native
+        - Container
+        - Web console
+        - N/A
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        - OS: ubuntu 24.04
+        - coldcase version: v0.1.0 / commit
+        - Runtime: docker 27.x (if applicable)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security checklist
+      options:
+        - label: I have redacted any evidence paths, session data and keys
+          required: true
+        - label: This is not a security vulnerability (those go to private advisories)
+          required: true
