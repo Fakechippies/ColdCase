@@ -48,13 +48,14 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      # -race requires cgo (gcc), which Windows runners don't ship.
-      - name: go test (race)
+      # -race needs cgo (gcc) and pwsh mangles coverprofile args, so Windows
+      # runs a plain test build; coverage is uploaded from Ubuntu.
+      - name: go test (race + coverage)
         if: runner.os != 'Windows'
         run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
       - name: go test
         if: runner.os == 'Windows'
-        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+        run: go test ./...
       - name: upload coverage
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
