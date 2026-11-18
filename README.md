@@ -2,11 +2,16 @@
 
 # ColdCase: Integrated Digital Forensics Tool
 
-[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![License](https://img.shields.io/badge/License-CC0%201.0-lightgrey.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-informational)](https://github.com/Fakechippies/ColdCase)
 [![Docker](https://img.shields.io/badge/Docker-Hybrid%20Runtime-blue?style=flat&logo=docker)](https://www.docker.com/)
 [![Total Tools](https://img.shields.io/badge/Total%20Tools-118%2B%20integrated-blue?style=flat)](#features)
+
+[![CI](https://github.com/Fakechippies/ColdCase/actions/workflows/ci.yml/badge.svg)](https://github.com/Fakechippies/ColdCase/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Fakechippies/ColdCase/actions/workflows/codeql.yml/badge.svg)](https://github.com/Fakechippies/ColdCase/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/Fakechippies/ColdCase?include_prereleases&sort=semver)](https://github.com/Fakechippies/ColdCase/releases)
+[![Container](https://img.shields.io/badge/ghcr.io-coldcase-orange?style=flat&logo=docker)](https://github.com/Fakechippies/ColdCase/pkgs/container/coldcase)
 
 A comprehensive CLI tool that integrates 118+ digital forensics utilities into a single, unified interface — plus a **local-only web console** for browsing the catalog, running tools with evidence uploads and reviewing signed sessions from the browser. ColdCase implements a **Hybrid Execution Model**: it runs tools natively if available, but transparently falls back to a Docker container if not, with automatic path mapping.
 
@@ -89,6 +94,20 @@ coldcase install
 # Option B: Set up the hybrid container (recommended)
 coldcase install --container
 ```
+
+### Signed releases
+
+Prebuilt binaries for linux/darwin/windows (amd64 + arm64) are published on
+the [Releases page](https://github.com/Fakechippies/ColdCase/releases).
+`checksums.txt` is signed with Ed25519; verify before use:
+
+```bash
+coldcase-sign verify -pub "$(cat keys/release_public.key)" \
+    checksums.txt checksums.txt.sig
+sha256sum --check checksums.txt
+```
+
+See [docs/RELEASING.md](docs/RELEASING.md) for the full process.
 
 ## Usage
 
@@ -234,6 +253,17 @@ ColdCase uses a **Modular Proxy Pattern** written in Go:
 - **`pkg/runner`**: The core execution engine. It checks for native binary existence, and if missing, executes the command via `docker run`.
 - **Argument Remapping**: The runner scans arguments for host filesystem paths, generates bind-mount flags (`-v`), and remaps the argument paths to match the container environment.
 - **`Dockerfile`**: A multi-stage build providing a pre-configured forensics environment with all 118+ utilities.
+
+## Contributing & Process
+
+ColdCase follows a structured delivery process:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — branch naming, conventional commits, PR flow
+- [docs/DEFINITION_OF_DONE.md](docs/DEFINITION_OF_DONE.md) — the quality bar
+- [CHANGELOG.md](CHANGELOG.md) — release history
+- Sprint work is tracked on the
+  [project board](https://github.com/users/Fakechippies/projects) and through
+  user-story issues; retrospectives live in `docs/retrospectives/`.
 
 ## License
 

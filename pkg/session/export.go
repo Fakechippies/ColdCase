@@ -18,25 +18,25 @@ func ExportJSON(s *Session) (string, error) {
 // ExportMarkdown returns the session as a technical markdown report
 func ExportMarkdown(s *Session) (string, error) {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("# Forensic Investigation Report: %s\n\n", s.ID))
-	sb.WriteString(fmt.Sprintf("- **Investigator**: %s (%s)\n", s.Investigator, s.Email))
-	sb.WriteString(fmt.Sprintf("- **Created**: %s\n", s.Created.Format("2006-01-02 15:04:05")))
-	sb.WriteString(fmt.Sprintf("- **State**: %s\n", s.State))
+	fmt.Fprintf(&sb, "# Forensic Investigation Report: %s\n\n", s.ID)
+	fmt.Fprintf(&sb, "- **Investigator**: %s (%s)\n", s.Investigator, s.Email)
+	fmt.Fprintf(&sb, "- **Created**: %s\n", s.Created.Format("2006-01-02 15:04:05"))
+	fmt.Fprintf(&sb, "- **State**: %s\n", s.State)
 	if s.SealedAt != nil {
-		sb.WriteString(fmt.Sprintf("- **Sealed**: %s\n", s.SealedAt.Format("2006-01-02 15:04:05")))
+		fmt.Fprintf(&sb, "- **Sealed**: %s\n", s.SealedAt.Format("2006-01-02 15:04:05"))
 	}
-	sb.WriteString(fmt.Sprintf("- **Signed**: %v\n", s.Signed))
-	sb.WriteString(fmt.Sprintf("- **Encrypted**: %v\n", s.Encrypted))
+	fmt.Fprintf(&sb, "- **Signed**: %v\n", s.Signed)
+	fmt.Fprintf(&sb, "- **Encrypted**: %v\n", s.Encrypted)
 	sb.WriteString("\n## Command History\n\n")
 
 	for _, cmd := range s.Commands {
-		sb.WriteString(fmt.Sprintf("### [%d] %s\n", cmd.Index, cmd.Command))
-		sb.WriteString(fmt.Sprintf("- **Time**: %s\n", cmd.Timestamp.Format("2006-01-02 15:04:05.000")))
-		sb.WriteString(fmt.Sprintf("- **Full Command**: `%s`\n", cmd.FullCommand))
-		sb.WriteString(fmt.Sprintf("- **Working Dir**: `%s`\n", cmd.WorkingDirectory))
-		sb.WriteString(fmt.Sprintf("- **Duration**: %dms\n", cmd.DurationMS))
+		fmt.Fprintf(&sb, "### [%d] %s\n", cmd.Index, cmd.Command)
+		fmt.Fprintf(&sb, "- **Time**: %s\n", cmd.Timestamp.Format("2006-01-02 15:04:05.000"))
+		fmt.Fprintf(&sb, "- **Full Command**: `%s`\n", cmd.FullCommand)
+		fmt.Fprintf(&sb, "- **Working Dir**: `%s`\n", cmd.WorkingDirectory)
+		fmt.Fprintf(&sb, "- **Duration**: %dms\n", cmd.DurationMS)
 		if cmd.Signature != "" {
-			sb.WriteString(fmt.Sprintf("- **Signature**: `%s`\n", cmd.Signature))
+			fmt.Fprintf(&sb, "- **Signature**: `%s`\n", cmd.Signature)
 		}
 		sb.WriteString("\n#### Output Preview\n```\n")
 		sb.WriteString(cmd.OutputPreview)
@@ -47,7 +47,7 @@ func ExportMarkdown(s *Session) (string, error) {
 	sb.WriteString("| Path | SHA256 | Captured |\n")
 	sb.WriteString("|------|--------|----------|\n")
 	for _, f := range s.Evidence {
-		sb.WriteString(fmt.Sprintf("| %s | %s | %s |\n", f.OriginalPath, f.SHA256, f.CapturedAt.Format("2006-01-02 15:04:05")))
+		fmt.Fprintf(&sb, "| %s | %s | %s |\n", f.OriginalPath, f.SHA256, f.CapturedAt.Format("2006-01-02 15:04:05"))
 	}
 
 	return sb.String(), nil

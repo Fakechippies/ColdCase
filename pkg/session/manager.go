@@ -6,13 +6,27 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
+	"regexp"
 	"time"
 )
 
+// SessionIDPattern is the allow-list for session identifiers. It doubles as a
+// path-safety guard: everything session IDs are used in filesystem paths, so
+// they must never contain separators or traversal characters.
+var SessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
+
+// ValidSessionID reports whether id is safe to use in paths and commands.
+// "." and ".." are explicitly rejected: they are valid under the character
+// set but traverse the sessions directory.
+func ValidSessionID(id string) bool {
+	if id == "." || id == ".." {
+		return false
+	}
+	return SessionIDPattern.MatchString(id)
+}
+
 var (
 	baseDir string
-	mu      sync.Mutex
 )
 
 func init() {
@@ -32,6 +46,9 @@ func NewManager() *Manager {
 }
 
 func (m *Manager) Create(id string, investigator, email string, sign, encrypt bool) (*Session, error) {
+	if !ValidSessionID(id) {
+		return nil, fmt.Errorf("invalid session id %q: use 1-64 characters of [A-Za-z0-9._-]", id)
+	}
 	sDir := filepath.Join(m.sessionsDir, id)
 	if _, err := os.Stat(sDir); err == nil {
 		return nil, fmt.Errorf("session '%s' already exists", id)
@@ -69,8 +86,11 @@ func (m *Manager) Create(id string, investigator, email string, sign, encrypt bo
 }
 
 func (m *Manager) Load(id string) (*Session, error) {
+	if !ValidSessionID(id) {
+		return nil, fmt.Errorf("invalid session id %q", id)
+	}
 	path := filepath.Join(m.sessionsDir, id, "session.json")
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // id is validated against SessionIDPattern above
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +104,9 @@ func (m *Manager) Load(id string) (*Session, error) {
 }
 
 func (m *Manager) Save(s *Session) error {
+	if !ValidSessionID(s.ID) {
+		return fmt.Errorf("invalid session id %q", s.ID)
+	}
 	path := filepath.Join(m.sessionsDir, s.ID, "session.json")
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {

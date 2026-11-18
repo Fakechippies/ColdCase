@@ -131,12 +131,16 @@ func (s *Server) withCommon(next http.Handler) http.Handler {
 				http.Error(w, "internal error", http.StatusInternalServerError)
 				return
 			}
-			http.SetCookie(w, &http.Cookie{
+			http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: Secure is set conditionally (r.TLS != nil); see below
 				Name:     csrfCookie,
 				Value:    token,
 				Path:     "/",
 				HttpOnly: true,
 				SameSite: http.SameSiteStrictMode,
+				// Secure only applies when the connection is TLS; on
+				// loopback plain HTTP the attribute would break the
+				// double-submit cookie.
+				Secure: r.TLS != nil, //nolint:gosec // G124: conditional Secure — gosec cannot model r.TLS; documented here
 			})
 		}
 		r = r.WithContext(context.WithValue(r.Context(), csrfContextKey{}, token))

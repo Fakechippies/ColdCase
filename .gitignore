@@ -15,3 +15,8 @@ demo.tape
 
 # Go dependencies
 vendor/
+
+# CI/test artifacts
+coverage.out
+dist/
+

@@ -45,7 +45,7 @@ func containerStatusCmd() *cobra.Command {
 			fmt.Printf("[*] Container image   : %s\n", image)
 
 			if rt != "" {
-				out, err := exec.Command(rt, "image", "inspect", image, "--format", "{{.Id}}").Output()
+				out, err := exec.Command(rt, "image", "inspect", image, "--format", "{{.Id}}").Output() //nolint:gosec // rt is the detected runtime (docker/podman) from PATH, image is a constant or COLDCASE_IMAGE
 				if err == nil && len(out) > 0 {
 					fmt.Printf("[*] Image status      : present (%s...)\n", string(out)[:12])
 				} else {
@@ -72,7 +72,7 @@ func containerBuildCmd() *cobra.Command {
 			}
 			image := runner.ImageName()
 			fmt.Printf("Building %s with %s...\n", image, rt)
-			buildCmd := exec.Command(rt, "build", "-t", image, ".")
+			buildCmd := exec.Command(rt, "build", "-t", image, ".") //nolint:gosec // rt is the detected runtime from PATH; image is internal config, not user input
 			buildCmd.Stdout = os.Stdout
 			buildCmd.Stderr = os.Stderr
 			if err := buildCmd.Run(); err != nil {
@@ -101,7 +101,7 @@ func containerPullCmd() *cobra.Command {
 			}
 			image := runner.ImageName()
 			fmt.Printf("Pulling %s...\n", image)
-			pullCmd := exec.Command(rt, "pull", image)
+			pullCmd := exec.Command(rt, "pull", image) //nolint:gosec // rt is the detected runtime from PATH; image is internal config, not user input
 			pullCmd.Stdout = os.Stdout
 			pullCmd.Stderr = os.Stderr
 			if err := pullCmd.Run(); err != nil {
@@ -136,7 +136,7 @@ The current directory is bind-mounted at /data inside the container.`,
 					wd = "."
 				}
 			}
-			shellCmd := exec.Command(rt, "run", "--rm", "-it",
+			shellCmd := exec.Command(rt, "run", "--rm", "-it", //nolint:gosec // interactive container shell is the entire purpose of this command; rt is docker/podman from PATH
 				"-v", fmt.Sprintf("%s:/data", wd),
 				"-w", "/data",
 				image, "/bin/bash")

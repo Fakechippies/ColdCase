@@ -228,7 +228,7 @@ func CheckAvailability(binary string) Availability {
 // ─── internal ─────────────────────────────────────────────────────────────────
 
 func runNative(ctx context.Context, opts RunOpts, stdout, stderr io.Writer) error {
-	cmd := exec.CommandContext(ctx, opts.Binary, opts.Args...)
+	cmd := exec.CommandContext(ctx, opts.Binary, opts.Args...) //nolint:gosec // core design: whitelisted catalog binary, argv slice, never a shell
 	if opts.WorkDir != "" {
 		cmd.Dir = opts.WorkDir
 	}
@@ -238,7 +238,7 @@ func runNative(ctx context.Context, opts RunOpts, stdout, stderr io.Writer) erro
 }
 
 func runInContainer(ctx context.Context, runtime string, opts RunOpts, stdout, stderr io.Writer, tty bool) error {
-	cmd := exec.CommandContext(ctx, runtime, containerArgs(runtime, opts, tty)...)
+	cmd := exec.CommandContext(ctx, runtime, containerArgs(runtime, opts, tty)...) //nolint:gosec // runtime is docker/podman from PATH; args are built argv elements
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	return cmd.Run()

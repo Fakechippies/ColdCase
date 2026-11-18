@@ -81,11 +81,8 @@ func (l *Logger) SaveOutput(index int, name string, output []byte) (string, erro
 	filename := fmt.Sprintf("%s_%03d.txt", name, index)
 	path := filepath.Join(baseDir, "sessions", l.session.ID, "outputs", filename)
 
-	if l.session.Encrypted {
-		// Encryption logic would go here if we have the key
-		// For now, write plain as we focus on audit logging
-	}
-
+	// Session encryption is not implemented yet; output is stored plaintext
+	// (mode 0600) and the audit log records the fact.
 	err := os.WriteFile(path, output, 0600)
 	if err != nil {
 		return "", err

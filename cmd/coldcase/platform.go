@@ -21,7 +21,8 @@ func init() {
 
 func showPlatformInfo(cmd *cobra.Command, args []string) {
 	osName := runtime.GOOS
-	fmt.Printf("Detected Platform: %s\n\n", strings.Title(osName))
+	capitalized := strings.ToUpper(osName[:1]) + osName[1:]
+	fmt.Printf("Detected Platform: %s\n\n", capitalized)
 	switch osName {
 	case "linux":
 		showLinuxInfo()

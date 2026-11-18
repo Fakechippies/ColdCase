@@ -1,0 +1,19 @@
+version: "2"
+
+# ColdCase lint configuration.
+# Philosophy: keep the default standard set (errcheck, govet, ineffassign,
+# staticcheck, unused) plus gosec for security-sensitive code. Findings are
+# fixed or individually justified — never blanket-disabled.
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - gosec
+  exclusions:
+    rules:
+      # Tests legitimately use weak randomness and fixed fixtures.
+      - path: _test\.go
+        linters:
+          - gosec

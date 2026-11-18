@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -19,8 +18,6 @@ import (
 	"coldcase/pkg/session"
 	"coldcase/pkg/tools"
 )
-
-var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
 
 // ─── pages ──────────────────────────────────────────────────────────────────
 
@@ -197,7 +194,7 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 
 	id := strings.TrimSpace(r.FormValue("id"))
-	if !sessionIDPattern.MatchString(id) {
+	if !session.ValidSessionID(id) {
 		s.renderError(w, r, http.StatusBadRequest, "Invalid session ID",
 			"Use 1–64 characters: letters, digits, dot, underscore or hyphen.")
 		return
@@ -211,7 +208,7 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusBadRequest, "Could not create session", "%s", err.Error())
 		return
 	}
-	http.Redirect(w, r, "/sessions/"+id, http.StatusSeeOther)
+	http.Redirect(w, r, "/sessions/"+id, http.StatusSeeOther) //nolint:gosec // id matches the session ID pattern [A-Za-z0-9._-]{1,64}; no scheme injection possible
 }
 
 func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
@@ -262,7 +259,7 @@ func (s *Server) handleSessionAction(w http.ResponseWriter, r *http.Request) {
 		s.renderError(w, r, http.StatusBadRequest, "Action failed", "%s", err.Error())
 		return
 	}
-	http.Redirect(w, r, "/sessions/"+id, http.StatusSeeOther)
+	http.Redirect(w, r, "/sessions/"+id, http.StatusSeeOther) //nolint:gosec // id comes from the URL path and matches the session ID pattern
 }
 
 func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
@@ -296,7 +293,7 @@ func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", sess.ID+"."+ext))
-	fmt.Fprint(w, body)
+	_, _ = fmt.Fprint(w, body) //nolint:gosec // G705: body is a report generated from the user's own session data, served as an attachment with an explicit Content-Type
 }
 
 func (s *Server) handleKeyGenerate(w http.ResponseWriter, r *http.Request) {
@@ -355,7 +352,7 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 
 	if strings.HasPrefix(contentType, "multipart/form-data") {
-		if err := r.ParseMultipartForm(32 << 20); err != nil {
+		if err := r.ParseMultipartForm(32 << 20); err != nil { //nolint:gosec // total body is already capped by http.MaxBytesReader above
 			code := http.StatusBadRequest
 			if strings.Contains(err.Error(), "too large") {
 				code = http.StatusRequestEntityTooLarge
@@ -382,7 +379,7 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 		file, header, err := r.FormFile("file")
 		switch {
 		case err == nil:
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 			uploadPath, err = saveUpload(header.Filename, file)
 			if err != nil {
 				writeJSONError(w, http.StatusInternalServerError, "could not store upload: "+err.Error())
@@ -499,12 +496,12 @@ func saveUpload(name string, src io.Reader) (string, error) {
 		return "", err
 	}
 	path := filepath.Join(dir, fmt.Sprintf("%d-%s", time.Now().UnixNano(), sanitizeFilename(name)))
-	dst, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	dst, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600) //nolint:gosec // path is built from a sanitized filename under ~/.coldcase/uploads
 	if err != nil {
 		return "", err
 	}
 	if _, err := io.Copy(dst, src); err != nil {
-		dst.Close()
+		_ = dst.Close()
 		_ = os.Remove(path)
 		return "", err
 	}
@@ -609,7 +606,7 @@ func writeSSE(w http.ResponseWriter, f http.Flusher, event string, payload any) 
 	if err != nil {
 		return
 	}
-	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
+	_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
 	f.Flush()
 }
 
@@ -626,7 +623,7 @@ func (s *sseWriter) Write(p []byte) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	data, _ := json.Marshal(string(p))
-	fmt.Fprintf(s.w, "event: %s\ndata: %s\n\n", s.event, data)
+	_, _ = fmt.Fprintf(s.w, "event: %s\ndata: %s\n\n", s.event, data)
 	s.f.Flush()
 	return len(p), nil
 }

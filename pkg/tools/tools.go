@@ -21,7 +21,7 @@ type Tool interface {
 // ExecuteCommand runs an external binary, streaming its stdout/stderr
 // directly to the calling process.
 func ExecuteCommand(name string, args ...string) error {
-	cmd := exec.Command(name, args...)
+	cmd := exec.Command(name, args...) //nolint:gosec // argv slice, never a shell; name comes from internal call sites (package managers, detected runtimes)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()

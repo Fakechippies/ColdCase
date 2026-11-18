@@ -12,7 +12,7 @@ func svg(body string, size int) template.HTML {
 	if size <= 0 {
 		size = 18
 	}
-	return template.HTML(fmt.Sprintf(
+	return template.HTML(fmt.Sprintf( //nolint:gosec // body is a hard-coded icon constant from this file, never user input
 		`<svg viewBox="0 0 24 24" width="%d" height="%d" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">%s</svg>`,
 		size, size, body))
 }
