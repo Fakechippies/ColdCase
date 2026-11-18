@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ed25519 release signing (`cmd/coldcase-sign`, GoReleaser + CI workflows).
 - CI: vet/lint/test/build matrix, govulncheck, CodeQL, Dependabot, container
   publish to GHCR.
-- Agile process artifacts: Definition of Done, contributing guide, issue/PR
+- Delivery process artifacts: Definition of Done, contributing guide, issue/PR
   templates, retrospective template.
 - First unit tests (session crypto, tool catalog integrity).
 

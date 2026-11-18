@@ -256,7 +256,7 @@ ColdCase uses a **Modular Proxy Pattern** written in Go:
 
 ## Contributing & Process
 
-ColdCase is developed with an agile process:
+ColdCase follows a structured delivery process:
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — branch naming, conventional commits, PR flow
 - [docs/DEFINITION_OF_DONE.md](docs/DEFINITION_OF_DONE.md) — the quality bar

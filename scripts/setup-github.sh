@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
 # scripts/setup-github.sh — one-shot, idempotent GitHub project setup for
-# ColdCase's agile workflow: labels, milestones, a user-story backlog,
+# ColdCase delivery workflow: labels, milestones, a user-story backlog,
 # a Kanban project board and branch protection on main.
 #
 # Requirements: gh CLI authenticated (gh auth status), push access to $REPO.
@@ -77,19 +77,19 @@ ISSUES_DONE=""
 n=$(create_issue "Set up CI: lint, test and build matrix for every push" \
   "ci-cd,sprint-1" "Sprint 1" "$(story 'developer' 'every push and PR vetted, linted, tested and cross-built' 'breakage is caught before merge')"
 
-  printf '%s\n\n**Acceptance criteria**\n- [x] CI runs on push to main and on all PRs\n- [x] Jobs: go vet, golangci-lint, go test -race -cover, go build\n- [x] Build matrix: ubuntu, macOS, Windows; Go version taken from go.mod\n- [x] Go module cache; coverage uploaded as an artifact\n- [x] Minimal permissions (contents: read)\n- [x] Unit tests exist for session crypto and catalog\n\n**Delivered by** #PR (feat/ci-cd-agile)\n')
+  printf '%s\n\n**Acceptance criteria**\n- [x] CI runs on push to main and on all PRs\n- [x] Jobs: go vet, golangci-lint, go test -race -cover, go build\n- [x] Build matrix: ubuntu, macOS, Windows; Go version taken from go.mod\n- [x] Go module cache; coverage uploaded as an artifact\n- [x] Minimal permissions (contents: read)\n- [x] Unit tests exist for session crypto and catalog\n\n**Delivered by** #PR (feat/ci-cd-pipeline)\n')
   ISSUES_DONE="$ISSUES_DONE $n"
 
 n=$(create_issue "Security scanning: govulncheck, CodeQL and Dependabot" \
   "security,ci-cd,sprint-1" "Sprint 1" "$(story 'maintainer' 'automated vulnerability and static security analysis' 'known CVEs and risky patterns are caught without manual effort')"
 
-  printf '%s\n\n**Acceptance criteria**\n- [x] govulncheck ./... on Go-touching PRs and a weekly cron\n- [x] CodeQL for Go on PRs and a weekly cron, least-privilege token\n- [x] Dependabot for gomod, github-actions and docker, weekly\n\n**Delivered by** #PR (feat/ci-cd-agile)\n')
+  printf '%s\n\n**Acceptance criteria**\n- [x] govulncheck ./... on Go-touching PRs and a weekly cron\n- [x] CodeQL for Go on PRs and a weekly cron, least-privilege token\n- [x] Dependabot for gomod, github-actions and docker, weekly\n\n**Delivered by** #PR (feat/ci-cd-pipeline)\n')
   ISSUES_DONE="$ISSUES_DONE $n"
 
 n=$(create_issue "Signed multi-platform releases with Ed25519" \
   "security,ci-cd,sprint-1" "Sprint 1" "$(story 'investigator' 'verifiable release artifacts' 'I can prove the binary I download is the binary CI built')"
 
-  printf '%s\n\n**Acceptance criteria**\n- [x] GoReleaser builds linux/darwin/windows on amd64+arm64\n- [x] checksums.txt signed with Ed25519 in the repo'"'"'s own signature format\n- [x] Private key only in the COLDCASE_SIGNING_KEY Actions secret\n- [x] Public key committed (keys/release_public.key) + verification docs\n- [x] Verified end-to-end locally: goreleaser snapshot + sign + verify + tamper-rejection\n\n**Delivered by** #PR (feat/ci-cd-agile)\n')
+  printf '%s\n\n**Acceptance criteria**\n- [x] GoReleaser builds linux/darwin/windows on amd64+arm64\n- [x] checksums.txt signed with Ed25519 in the repo'"'"'s own signature format\n- [x] Private key only in the COLDCASE_SIGNING_KEY Actions secret\n- [x] Public key committed (keys/release_public.key) + verification docs\n- [x] Verified end-to-end locally: goreleaser snapshot + sign + verify + tamper-rejection\n\n**Delivered by** #PR (feat/ci-cd-pipeline)\n')
   ISSUES_DONE="$ISSUES_DONE $n"
 
 n=$(create_issue "Detached console lifecycle: serve up/down/status/run" \

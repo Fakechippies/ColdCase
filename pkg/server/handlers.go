@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -19,8 +18,6 @@ import (
 	"coldcase/pkg/session"
 	"coldcase/pkg/tools"
 )
-
-var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
 
 // ─── pages ──────────────────────────────────────────────────────────────────
 
@@ -197,7 +194,7 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 
 	id := strings.TrimSpace(r.FormValue("id"))
-	if !sessionIDPattern.MatchString(id) {
+	if !session.ValidSessionID(id) {
 		s.renderError(w, r, http.StatusBadRequest, "Invalid session ID",
 			"Use 1–64 characters: letters, digits, dot, underscore or hyphen.")
 		return
