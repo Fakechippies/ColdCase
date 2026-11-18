@@ -43,7 +43,8 @@ Every catalog tool is also a direct subcommand, e.g.:
   coldcase hash evidence.bin
   coldcase tshark -r capture.pcap -Y http
 `,
-	SilenceUsage: true,
+	SilenceUsage:  true,
+	SilenceErrors: true, // main() prints the error once
 }
 
 func main() {

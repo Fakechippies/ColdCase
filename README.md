@@ -111,28 +111,43 @@ through the same runner, session logging and catalog whitelist as the CLI.
 # Install once (or: go build -o coldcase ./cmd/coldcase for a local binary)
 go install ./cmd/coldcase
 
-# Start the web console (binds to 127.0.0.1:8765 by default)
+# Start the web console as a detached background process
 coldcase serve
 
 # Custom port / host
 coldcase serve --port 9000
 coldcase serve --host localhost --port 9000
+
+# Explicit start (same as bare 'serve')
+coldcase serve up
 ```
 
-Then open **http://127.0.0.1:8765** in your browser.
+`serve` daemonizes: it returns immediately and prints the URL, PID and log
+location. The console is available at **http://127.0.0.1:8765** by default,
+with output captured to `~/.coldcase/serve.log`.
 
-> **Security:** the server refuses to bind to a non-loopback address unless you
-> pass `--allow-remote` (and confirm interactively, or skip the prompt with
-> `--yes`). Exposing the console beyond loopback lets anyone with network
-> access execute tools — avoid it unless you understand the risk.
+To run in the foreground instead (Ctrl+C to stop):
 
-### Stopping the server
+```bash
+coldcase serve run
+```
 
-- Press `Ctrl+C` in the terminal where `serve` is running, or
-- Kill the process: `kill $(pgrep -f "coldcase serve")`
+> **Security:** the console binds to 127.0.0.1 only. It refuses to bind to a
+> non-loopback address unless you pass `--allow-remote` (and confirm
+> interactively, or skip the prompt with `--yes`). Exposing the console beyond
+> loopback lets anyone with network access execute tools — avoid it unless you
+> understand the risk.
 
-The server keeps no daemon or background service; once stopped, nothing is
-listening.
+### Checking and stopping the server
+
+```bash
+coldcase serve status   # running? which address, which pid
+coldcase serve down     # graceful stop (SIGTERM, with SIGKILL fallback)
+```
+
+`serve down` only stops processes it can verify belong to ColdCase, and it
+cleans up a stale `~/.coldcase/serve.pid` automatically. There is no daemon or
+system service; once stopped, nothing is listening.
 
 ### Console tabs
 

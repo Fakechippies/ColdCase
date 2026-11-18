@@ -35,6 +35,7 @@ type Server struct {
 	pages   map[string]*template.Template
 	mux     *http.ServeMux
 	manager *session.Manager
+	httpSrv *http.Server
 
 	toolCount     int
 	categoryCount int
@@ -59,6 +60,11 @@ func New(addr string) (*Server, error) {
 		s.toolCount += len(c.Tools)
 	}
 	s.routes()
+	s.httpSrv = &http.Server{
+		Addr:              addr,
+		Handler:           s.Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+	}
 	return s, nil
 }
 
@@ -72,12 +78,13 @@ func (s *Server) Addr() string { return s.addr }
 
 // ListenAndServe starts the HTTP server.
 func (s *Server) ListenAndServe() error {
-	srv := &http.Server{
-		Addr:              s.addr,
-		Handler:           s.Handler(),
-		ReadHeaderTimeout: 10 * time.Second,
-	}
-	return srv.ListenAndServe()
+	return s.httpSrv.ListenAndServe()
+}
+
+// Shutdown gracefully drains active connections (including any in-flight
+// SSE streams) within ctx, then returns.
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.httpSrv.Shutdown(ctx)
 }
 
 func (s *Server) routes() {
