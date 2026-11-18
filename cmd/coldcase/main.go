@@ -30,17 +30,56 @@ const defaultSuitePath = catalog.DefaultSuitePath
 var rootCmd = &cobra.Command{
 	Use:   "coldcase",
 	Short: "Integrated Digital Forensics Tool",
-	Long:  "A comprehensive CLI tool integrating 100+ digital forensics utilities",
+	Long: `A comprehensive CLI tool integrating 100+ digital forensics utilities,
+plus a local-only web console for browsing the catalog and running tools.
+
+Core workflow:
+  coldcase serve               Start the web console (http://127.0.0.1:8765)
+  coldcase list | check        Inspect the tool catalog and availability
+  coldcase keys generate       Create the Ed25519 signing keypair
+  coldcase session start ...   Open a signed forensic session
+
+Every catalog tool is also a direct subcommand, e.g.:
+  coldcase hash evidence.bin
+  coldcase tshark -r capture.pcap -Y http
+`,
+	SilenceUsage: true,
 }
 
 func main() {
+	markCommandGroups()
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
+const (
+	groupCore  = "core"
+	groupTools = "tools"
+)
+
+// coreCommands are the ColdCase built-ins; everything else in the catalog is
+// grouped under "Forensics tools" so the default help stays scannable.
+var coreCommands = map[string]bool{
+	"serve":     true,
+	"session":   true,
+	"keys":      true,
+	"list":      true,
+	"check":     true,
+	"container": true,
+	"install":   true,
+	"deps":      true,
+}
+
 func init() {
+	rootCmd.AddGroup(
+		&cobra.Group{ID: groupCore, Title: "ColdCase commands:"},
+		&cobra.Group{ID: groupTools, Title: "Forensics tools:"},
+	)
+	rootCmd.SetHelpCommandGroupID(groupCore)
+	rootCmd.SetCompletionCommandGroupID(groupCore)
+
 	// Original tool categories
 	addDidierStevensCommands()
 	addExifToolCommand()
@@ -62,6 +101,21 @@ func init() {
 	// Built-in utilities
 	addListCommand()
 	addCheckCommand()
+}
+
+// markCommandGroups assigns every registered command to a help group. It runs
+// from main() — not init() — so commands added by other files' init() funcs
+// (serve, session, keys) are already registered by then.
+func markCommandGroups() {
+	for _, c := range rootCmd.Commands() {
+		if c.GroupID == "" {
+			if coreCommands[c.Name()] {
+				c.GroupID = groupCore
+			} else {
+				c.GroupID = groupTools
+			}
+		}
+	}
 }
 
 // tool is a minimal interface matched by all pkg tool types.

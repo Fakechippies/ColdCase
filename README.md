@@ -8,7 +8,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Hybrid%20Runtime-blue?style=flat&logo=docker)](https://www.docker.com/)
 [![Total Tools](https://img.shields.io/badge/Total%20Tools-118%2B%20integrated-blue?style=flat)](#features)
 
-A comprehensive CLI tool that integrates 118+ digital forensics utilities into a single, unified interface. ColdCase implements a **Hybrid Execution Model**: it runs tools natively if available, but transparently falls back to a Docker container if not, with automatic path mapping.
+A comprehensive CLI tool that integrates 118+ digital forensics utilities into a single, unified interface — plus a **local-only web console** for browsing the catalog, running tools with evidence uploads and reviewing signed sessions from the browser. ColdCase implements a **Hybrid Execution Model**: it runs tools natively if available, but transparently falls back to a Docker container if not, with automatic path mapping.
 
 ## Showcase
 
@@ -19,6 +19,7 @@ A comprehensive CLI tool that integrates 118+ digital forensics utilities into a
 - **Hybrid Proxy Runtime**: Native speed when possible, container reliability when needed.
 - **Smart Path Mapping**: Host paths in arguments are automatically detected and mounted to the container.
 - **Extended Toolset**: 118+ tools across 14 categories.
+- **Local Web Console**: Server-rendered dashboard, tool catalog, availability graphs and a live output runner at `http://127.0.0.1:8765`.
 - **Forensic Session Management**: Automated audit logging with Ed25519 cryptographic signing.
 - **Advanced State Control**: Unlocked, Locked, and SEALED states for rigid chain of custody.
 - **Integrated Key Management**: Built-in Ed25519 keypair generation and management.
@@ -96,7 +97,76 @@ bin/coldcase install --container
 bin/coldcase list             # Show all 118+ tools
 bin/coldcase check            # Check tool status (native/container)
 bin/coldcase container status  # Check Docker status
+bin/coldcase --help           # Grouped help: ColdCase commands + Forensics tools
 ```
+
+## Web Console
+
+ColdCase ships with a local-only web UI. Every action in the browser flows
+through the same runner, session logging and catalog whitelist as the CLI.
+
+### Starting the server
+
+```bash
+# Build once
+go build -o bin/coldcase ./cmd/coldcase
+
+# Start the web console (binds to 127.0.0.1:8765 by default)
+bin/coldcase serve
+
+# Custom port / host
+bin/coldcase serve --port 9000
+bin/coldcase serve --host localhost --port 9000
+```
+
+Then open **http://127.0.0.1:8765** in your browser.
+
+> **Security:** the server refuses to bind to a non-loopback address unless you
+> pass `--allow-remote` (and confirm interactively, or skip the prompt with
+> `--yes`). Exposing the console beyond loopback lets anyone with network
+> access execute tools — avoid it unless you understand the risk.
+
+### Stopping the server
+
+- Press `Ctrl+C` in the terminal where `serve` is running, or
+- Kill the process: `kill $(pgrep -f "coldcase serve")`
+
+The server keeps no daemon or background service; once stopped, nothing is
+listening.
+
+### Console tabs
+
+| Tab | What it does |
+|-----|--------------|
+| **Dashboard** | Read-only telemetry: availability donut, session states, 7-day command activity, top tools, category coverage. No actions live here. |
+| **Run Tool** | Pick any catalog tool, attach an evidence file, choose a session and stream stdout/stderr live. |
+| **Tool Catalog** | Searchable, icon-driven catalog grouped by category, with per-tool availability badges. |
+| **Availability** | Coverage graphs (native vs container vs missing) plus a filterable table of every tool. |
+| **Sessions** | Create sessions, review the signed audit trail, verify signatures, export reports. |
+
+### Running a tool from the browser
+
+1. Open the **Run Tool** tab (or click a tool in the **Tool Catalog**).
+2. **Attach evidence**: drop or browse for a file. It is uploaded to
+   `~/.coldcase/uploads`, hashed and recorded in the session's evidence log.
+   Uploads are optional — flag-only runs work too.
+3. **Extra arguments**: one per line. Use `{file}` where the upload path should
+   appear; if omitted, the upload path is appended automatically.
+4. **Session**: select an unlocked session to log and sign the execution, or
+   leave it empty for a quick, unlogged run.
+5. Click **Run tool**. Output streams live; **Stop** aborts the process.
+
+Tools that may need elevated privileges ask for an explicit per-run
+confirmation checkbox before they will execute.
+
+### Housekeeping
+
+- Uploaded evidence stays under `~/.coldcase/uploads` so session hashes keep
+  resolving; delete files you no longer need manually.
+- Sessions live under `~/.coldcase/sessions`; the console can lock, seal and
+  export them like the CLI.
+- If no signing keys exist yet, the **Sessions** tab offers a one-click
+  **Generate signing keys** action (equivalent to `bin/coldcase keys generate`).
 
 ### Hybrid Engine Examples
 If `tshark` is not on your host, ColdCase runs it via the container automatically:
