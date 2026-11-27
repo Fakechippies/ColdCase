@@ -4,7 +4,7 @@
 # to this image when tools are not installed on the host.
 
 # ─── Stage 1: system packages ──────────────────────────────────────────────────
-FROM ubuntu:24.04 AS system
+FROM ubuntu:26.04 AS system
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
