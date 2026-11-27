@@ -67,8 +67,20 @@ func (s *Server) handleRunPage(w http.ResponseWriter, r *http.Request) {
 
 // defaultTool picks a natively available tool so the runner opens with
 // something the user can execute immediately.
+//
+// Preference order matters for usability: the catalog's first entries are
+// special-purpose analysers (e.g. 1768, which only understands Cobalt Strike
+// beacons). Opening the runner on one of those makes a normal file appear to
+// "produce no output". Generic, file-agnostic tools are tried first so the
+// first run always yields visible results.
 func defaultTool() catalog.Tool {
 	all := catalog.All()
+	preferred := []string{"hash", "pdfid", "byte-stats"}
+	for _, name := range preferred {
+		if t, ok := catalog.Find(name); ok && tools.CheckToolInstalled(t.Binary) {
+			return t
+		}
+	}
 	for _, t := range all {
 		if tools.CheckToolInstalled(t.Binary) {
 			return t

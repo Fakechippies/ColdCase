@@ -134,6 +134,7 @@
     }
 
     function clearTerminal() { term.textContent = ""; }
+    var sawOutput = false;
     function append(text, cls) {
       var span = document.createElement("span");
       if (cls) span.className = cls;
@@ -165,6 +166,7 @@
       var file = fileInput && fileInput.files ? fileInput.files[0] : null;
 
       clearTerminal();
+      sawOutput = false;
       var cmdline = tool + (args.length ? " " + args.join(" ") : "");
       if (file) cmdline += (args.length ? " " : " ") + file.name;
       sys("$ " + cmdline);
@@ -201,9 +203,13 @@
             if (d.uploaded) bits.push("upload stored");
             sys("[meta] " + bits.join(" · "));
           },
-          stdout: function (d) { append(d.text); },
-          stderr: function (d) { append(d.text, "t-stderr"); },
+          stdout: function (d) { sawOutput = true; append(d.text); },
+          stderr: function (d) { sawOutput = true; append(d.text, "t-stderr"); },
           exit: function (d) {
+            if (d.code === 0 && !sawOutput) {
+              sys("[no output] " + tool + " exited successfully without writing anything. " +
+                  "This tool may not handle this kind of file — check its description or pick another tool.", "t-sys");
+            }
             var bits = [];
             if (d.error) bits.push(d.error);
             if (d.logged) bits.push("logged to session " + d.logged);

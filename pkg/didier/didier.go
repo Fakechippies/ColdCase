@@ -47,7 +47,7 @@ func Tools(suitePath string) []*DidierStevensTool {
 	defs := []struct {
 		name, script, desc string
 	}{
-		{"1768", "1768.py", "Analyze 1768 PDF files"},
+		{"1768", "1768.py", "Analyze Cobalt Strike beacons"},
 		{"amsiscan", "amsiscan.py", "Scan AMSI cache"},
 		{"pdf-parser", "pdf-parser.py", "Parse PDF documents for analysis"},
 		{"pdfid", "pdfid.py", "Test PDF files for malicious content"},
