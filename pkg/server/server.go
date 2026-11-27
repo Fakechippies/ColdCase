@@ -100,7 +100,18 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /sessions/{id}/export", s.handleExport)
 	s.mux.HandleFunc("POST /keys/generate", s.handleKeyGenerate)
 	s.mux.HandleFunc("POST /api/run", s.handleRun)
-	s.mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(mustSub(web.FS, "static")))))
+	s.mux.Handle("GET /static/", http.StripPrefix("/static/", noCacheStatic(http.FileServer(http.FS(mustSub(web.FS, "static"))))))
+}
+
+// noCacheStatic forces browsers to revalidate embedded assets. The files are
+// baked into the binary, so their FileInfo has no modtime or ETag; without an
+// explicit directive a browser may heuristically cache an old app.js and keep
+// running stale UI code after an upgrade.
+func noCacheStatic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // ─── middleware ─────────────────────────────────────────────────────────────
