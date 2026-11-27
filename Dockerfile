@@ -95,12 +95,14 @@ COPY DidierStevensSuite/ ./DidierStevensSuite/
 ENV PATH="/opt/coldcase-venv/bin:$PATH"
 RUN pip install --no-cache-dir -e "./volatility3[full]" 2>/dev/null || true
 
-# Hayabusa binary (Rust, released as a zip since v3.x)
+# Hayabusa binary (Rust, zip release; extracted binary carries the version
+# in its filename and expects ./rules + ./config as siblings)
 RUN curl -sSL -o /tmp/hayabusa.zip \
     "https://github.com/Yamato-Security/hayabusa/releases/download/v4.5.0/hayabusa-4.5.0-lin-x64-gnu.zip" \
-    && unzip -o -q /tmp/hayabusa.zip -d /tmp/hayabusa \
-    && find /tmp/hayabusa -name hayabusa -type f -exec install -m 755 {} /usr/local/bin/hayabusa \; \
-    && rm -rf /tmp/hayabusa /tmp/hayabusa.zip || true
+    && unzip -o -q /tmp/hayabusa.zip -d /opt/hayabusa \
+    && printf '#!/bin/sh\ncd /opt/hayabusa && exec ./hayabusa-4.5.0-lin-x64-gnu "$@"\n' > /usr/local/bin/hayabusa \
+    && chmod +x /usr/local/bin/hayabusa \
+    && rm -f /tmp/hayabusa.zip || true
 
 # Chainsaw binary (Rust, static; tarball nests it under a top-level dir)
 RUN curl -sSL \
