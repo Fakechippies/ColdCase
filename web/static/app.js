@@ -145,6 +145,11 @@
     function sys(text, cls) {
       append(text.charAt(text.length - 1) === "\n" ? text : text + "\n", cls || "t-sys");
     }
+    function chunkText(d) {
+      if (typeof d === "string") return d;
+      if (d && typeof d.text === "string") return d.text;
+      return "";
+    }
     function setStatus(text, cls) {
       statusEl.textContent = text;
       statusEl.className = "run-status" + (cls ? " " + cls : "");
@@ -203,8 +208,16 @@
             if (d.uploaded) bits.push("upload stored");
             sys("[meta] " + bits.join(" · "));
           },
-          stdout: function (d) { sawOutput = true; append(d.text); },
-          stderr: function (d) { sawOutput = true; append(d.text, "t-stderr"); },
+          stdout: function (d) {
+            var text = chunkText(d);
+            if (text) sawOutput = true;
+            append(text);
+          },
+          stderr: function (d) {
+            var text = chunkText(d);
+            if (text) sawOutput = true;
+            append(text, "t-stderr");
+          },
           exit: function (d) {
             if (d.code === 0 && !sawOutput) {
               sys("[no output] " + tool + " exited successfully without writing anything. " +
