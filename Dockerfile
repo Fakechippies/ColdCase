@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ruby ruby-dev \
     git curl wget ca-certificates \
     # Network forensics
-    tshark tcpdump ngrep tcpflow tcpreplay tcpstat argus \
+    tshark tcpdump ngrep tcpflow tcpreplay tcpstat argus-client argus-server \
     # File carving & recovery
     foremost scalpel testdisk \
     # Hashing
@@ -41,11 +41,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pcapfix (build from source — not in apt)
-RUN apt-get update && apt-get install -y --no-install-recommends g++ libpcap-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential libpcap-dev \
     && git clone --depth=1 https://github.com/Rup0rt/pcapfix.git /tmp/pcapfix \
     && cd /tmp/pcapfix && make && mv pcapfix /usr/local/bin/ \
     && rm -rf /tmp/pcapfix \
-    && apt-get purge -y g++ libpcap-dev && apt-get autoremove -y \
+    && apt-get purge -y build-essential libpcap-dev && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 # ─── Stage 2: Python tools ─────────────────────────────────────────────────────
