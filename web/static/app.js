@@ -20,10 +20,27 @@
   }
 
   function splitArgs(text) {
-    return text
-      .split("\n")
-      .map(function (line) { return line.trim(); })
-      .filter(function (line) { return line.length > 0; });
+    // Tokenize like a shell: whitespace (spaces, tabs, newlines) separates
+    // arguments; quoted spans keep their spaces. Lets users paste a normal
+    // command line instead of memorising the one-arg-per-line layout.
+    var out = [];
+    var cur = "";
+    var quote = null;
+    for (var i = 0; i < text.length; i++) {
+      var c = text.charAt(i);
+      if (quote) {
+        if (c === quote) quote = null;
+        else cur += c;
+      } else if (c === '"' || c === "'") {
+        quote = c;
+      } else if (c === " " || c === "\t" || c === "\n" || c === "\r") {
+        if (cur !== "") { out.push(cur); cur = ""; }
+      } else {
+        cur += c;
+      }
+    }
+    if (cur !== "") out.push(cur);
+    return out;
   }
 
   function setupToolPicker() {
