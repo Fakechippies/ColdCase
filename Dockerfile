@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Misc
     p0f \
     file \
+    unzip \
     safecopy \
     mono-complete \
     && rm -rf /var/lib/apt/lists/*
@@ -55,27 +56,16 @@ FROM system AS python-tools
 RUN python3 -m venv /opt/coldcase-venv
 ENV PATH="/opt/coldcase-venv/bin:$PATH"
 
-RUN pip install --no-cache-dir \
-    # Timeline analysis
-    plaso \
-    # Windows event log timeline
-    hayabusa-python || true \
-    # Timeliner (mactime rewrite)
-    timeliner \
-    # FLARE FLOSS — string deobfuscation
-    flare-floss \
-    # Mandiant CAPA
-    flare-capa \
-    # Mobile forensics
-    alexibrignoni-aleapp || true \
-    # Windows registry
-    regrippy \
-    analyzeMFT \
-    # VT CLI (Python wrapper)
-    vt-py \
-    indxparse \
-    python-registry \
-    && true   # don't fail on optional packages
+# One package per layer: a single wrong name must not take the whole
+# toolset down (this previously swallowed every install into one RUN).
+RUN pip install --no-cache-dir plaso 2>/dev/null || true
+RUN pip install --no-cache-dir timeliner 2>/dev/null || true
+RUN pip install --no-cache-dir flare-floss 2>/dev/null || true
+RUN pip install --no-cache-dir flare-capa 2>/dev/null || true
+RUN pip install --no-cache-dir regrippy 2>/dev/null || true
+RUN pip install --no-cache-dir analyzeMFT 2>/dev/null || true
+RUN pip install --no-cache-dir vt-py 2>/dev/null || true
+RUN pip install --no-cache-dir python-registry 2>/dev/null || true
 
 # Install zsteg (Ruby gem)
 RUN gem install zsteg --no-document 2>/dev/null || true
@@ -105,27 +95,31 @@ COPY DidierStevensSuite/ ./DidierStevensSuite/
 ENV PATH="/opt/coldcase-venv/bin:$PATH"
 RUN pip install --no-cache-dir -e "./volatility3[full]" 2>/dev/null || true
 
-# Hayabusa binary (Rust, released as a static binary)
-RUN ARCH="$(uname -m)" \
-    && if [ "$ARCH" = "x86_64" ]; then \
-    curl -sSL \
-    "https://github.com/Yamato-Security/hayabusa/releases/latest/download/hayabusa-linux-x86_64.tar.gz" \
-    | tar -xz -C /usr/local/bin --wildcards '*/hayabusa' --strip-components=1 2>/dev/null || true; \
-    fi
+# Hayabusa binary (Rust, zip release; extracted binary carries the version
+# in its filename and expects ./rules + ./config as siblings)
+RUN curl -sSL -o /tmp/hayabusa.zip \
+    "https://github.com/Yamato-Security/hayabusa/releases/download/v4.5.0/hayabusa-4.5.0-lin-x64-gnu.zip" \
+    && unzip -o -q /tmp/hayabusa.zip -d /opt/hayabusa \
+    && printf '#!/bin/sh\ncd /opt/hayabusa && exec ./hayabusa-4.5.0-lin-x64-gnu "$@"\n' > /usr/local/bin/hayabusa \
+    && chmod +x /usr/local/bin/hayabusa \
+    && rm -f /tmp/hayabusa.zip || true
 
-# Chainsaw binary (Rust, static)
+# Chainsaw binary (Rust, static; tarball nests it under a top-level dir)
 RUN curl -sSL \
     "https://github.com/WithSecureLabs/chainsaw/releases/latest/download/chainsaw_x86_64-unknown-linux-gnu.tar.gz" \
-    | tar -xz -C /usr/local/bin chainsaw 2>/dev/null || true
+    | tar -xz -C /usr/local/bin --wildcards '*/chainsaw' --strip-components=1 2>/dev/null || true
 
-# evtx_dump (Python)
-RUN pip install --no-cache-dir python-evtx 2>/dev/null || true
+# evtx_dump binary (Rust; the pip 'evtx' wheel ships no CLI)
+RUN curl -sSL -o /usr/local/bin/evtx_dump \
+    "https://github.com/omerbenamram/evtx/releases/download/v0.15.1/evtx_dump-v0.15.1-x86_64-unknown-linux-gnu" \
+    && chmod +x /usr/local/bin/evtx_dump || true
+
+# evtx_dump binary is installed above; the pip 'evtx' wheel ships no CLI.
 
 # wavsteg
 RUN pip install --no-cache-dir wavsteg 2>/dev/null || true
 
-# ssdeep Python bindings (already have ssdeep binary above)
-RUN pip install --no-cache-dir ssdeep 2>/dev/null || true
+# ssdeep Python bindings (already have ssdeep binary above)RUN pip install --no-cache-dir ssdeep 2>/dev/null || true
 
 # Set up a data mount point for evidence files.
 RUN mkdir -p /data

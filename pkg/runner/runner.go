@@ -13,6 +13,8 @@ import (
 	"os/exec"
 	"time"
 
+	"golang.org/x/term"
+
 	"coldcase/pkg/session"
 	"coldcase/pkg/tools"
 )
@@ -294,9 +296,8 @@ func detectRuntime() (string, error) {
 }
 
 func isTTY() bool {
-	fi, err := os.Stdin.Stat()
-	if err != nil {
-		return false
-	}
-	return (fi.Mode() & os.ModeCharDevice) != 0
+	// os.ModeCharDevice alone also matches /dev/null and other pseudo
+	// devices, which made the container path add a -t flag without a real
+	// terminal. Terminals are detected properly here.
+	return term.IsTerminal(int(os.Stdin.Fd()))
 }
