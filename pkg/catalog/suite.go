@@ -94,7 +94,7 @@ func ancestorSuiteDirs(dir string) []string {
 }
 
 func isDir(path string) bool {
-	info, err := os.Stat(path)
+	info, err := os.Stat(path) //nolint:gosec // path is an explicit override or a discovery candidate, never user input
 	return err == nil && info.IsDir()
 }
 

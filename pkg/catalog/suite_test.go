@@ -21,7 +21,7 @@ func TestResolveSuitePathFromAncestor(t *testing.T) {
 
 	t.Setenv("COLDCASE_SUITE", "")
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
-	t.Setenv("HOME", t.TempDir())
+	setHome(t, t.TempDir())
 	t.Chdir(nested)
 
 	if got, want := ResolveSuitePath(), abs(suite); got != want {
@@ -43,7 +43,7 @@ func TestResolveSuitePathEnvOverride(t *testing.T) {
 
 	t.Setenv("COLDCASE_SUITE", override)
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
-	t.Setenv("HOME", t.TempDir())
+	setHome(t, t.TempDir())
 	t.Chdir(wd)
 
 	if got, want := ResolveSuitePath(), abs(override); got != want {
@@ -62,7 +62,7 @@ func TestResolveSuitePathHomeLink(t *testing.T) {
 
 	t.Setenv("COLDCASE_SUITE", "")
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
-	t.Setenv("HOME", home)
+	setHome(t, home)
 	t.Chdir(t.TempDir())
 
 	if got, want := ResolveSuitePath(), abs(linked); got != want {
@@ -75,10 +75,18 @@ func TestResolveSuitePathHomeLink(t *testing.T) {
 func TestResolveSuitePathFallback(t *testing.T) {
 	t.Setenv("COLDCASE_SUITE", "")
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
-	t.Setenv("HOME", t.TempDir())
+	setHome(t, t.TempDir())
 	t.Chdir(t.TempDir())
 
 	if got := ResolveSuitePath(); got != DefaultSuitePath {
 		t.Fatalf("ResolveSuitePath() = %q, want fallback %q", got, DefaultSuitePath)
 	}
+}
+
+// setHome points os.UserHomeDir at a temp directory on every platform:
+// Unix reads HOME, Windows reads USERPROFILE.
+func setHome(t *testing.T, dir string) {
+	t.Helper()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
 }

@@ -72,7 +72,7 @@ func linkDidierSuite() {
 		return
 	}
 
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
 		fmt.Printf("[!] Cannot create %s: %v\n", filepath.Dir(dst), err)
 		return
 	}
