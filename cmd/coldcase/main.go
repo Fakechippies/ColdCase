@@ -25,8 +25,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const defaultSuitePath = catalog.DefaultSuitePath
-
 var rootCmd = &cobra.Command{
 	Use:   "coldcase",
 	Short: "Integrated Digital Forensics Tool",
@@ -70,6 +68,7 @@ var coreCommands = map[string]bool{
 	"check":     true,
 	"container": true,
 	"install":   true,
+	"suite":     true,
 	"deps":      true,
 }
 
@@ -147,7 +146,7 @@ func addGenericCommands[T tool](_ string, tools []T) {
 // ─── DidierStevens ────────────────────────────────────────────────────────────
 
 func addDidierStevensCommands() {
-	for _, t := range didier.Tools(defaultSuitePath) {
+	for _, t := range didier.Tools(catalog.ResolveSuitePath()) {
 		t := t
 		cmd := &cobra.Command{
 			Use:   t.Name(),

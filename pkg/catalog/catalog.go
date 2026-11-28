@@ -31,10 +31,6 @@ import (
 	wintools "coldcase/pkg/windows"
 )
 
-// DefaultSuitePath is the directory holding the DidierStevensSuite Python
-// scripts, relative to the working directory.
-const DefaultSuitePath = "./DidierStevensSuite"
-
 // Tool is a normalized catalog entry.
 type Tool struct {
 	// Name is the command name shown to the user (e.g. "pdfid" or "plaso parse").
@@ -88,8 +84,9 @@ func Categories() []Category {
 	}
 
 	// DidierStevens Suite
+	suitePath := ResolveSuitePath()
 	var did []Tool
-	for _, t := range didier.Tools(DefaultSuitePath) {
+	for _, t := range didier.Tools(suitePath) {
 		did = append(did, plan("DidierStevens Suite", t))
 	}
 	add("DidierStevens Suite", did)

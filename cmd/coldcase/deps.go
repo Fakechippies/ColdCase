@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
+	"coldcase/pkg/catalog"
 	"coldcase/pkg/runner"
 	"coldcase/pkg/tools"
 	vol3 "coldcase/pkg/volatility3"
@@ -33,6 +35,65 @@ func init() {
 	depsCmd.AddCommand(&cobra.Command{Use: "check", Short: "Check for missing dependencies", Run: checkDeps})
 	depsCmd.AddCommand(&cobra.Command{Use: "update", Short: "Update Python dependencies", Run: updateDeps})
 	rootCmd.AddCommand(depsCmd)
+
+	suiteCmd := &cobra.Command{
+		Use:   "suite",
+		Short: "Show where the DidierStevensSuite was found",
+		Long:  "Print the resolved DidierStevensSuite path, or link it into ~/.coldcase so an installed binary can find it outside a source checkout.",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(catalog.ResolveSuitePath())
+		},
+	}
+	suiteCmd.AddCommand(&cobra.Command{
+		Use:   "link",
+		Short: "Link the suite into ~/.coldcase/DidierStevensSuite",
+		Run:   func(cmd *cobra.Command, args []string) { linkDidierSuite() },
+	})
+	rootCmd.AddCommand(suiteCmd)
+}
+
+// linkDidierSuite makes the discovered suite visible to an installed binary.
+// `coldcase install` calls this automatically; `coldcase suite link` exposes
+// it for existing installs.
+func linkDidierSuite() {
+	src := catalog.ResolveSuitePath()
+	if src == catalog.DefaultSuitePath {
+		fmt.Println("[!] DidierStevensSuite not found; run this from a source checkout.")
+		return
+	}
+
+	dst, err := catalog.SuiteLinkPath()
+	if err != nil {
+		fmt.Printf("[!] Cannot determine home directory: %v\n", err)
+		return
+	}
+	if dst == src {
+		fmt.Printf("[*] DidierStevensSuite already linked: %s\n", dst)
+		return
+	}
+
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		fmt.Printf("[!] Cannot create %s: %v\n", filepath.Dir(dst), err)
+		return
+	}
+	if resolved, err := filepath.EvalSymlinks(dst); err == nil {
+		if resolved == src {
+			fmt.Printf("[*] DidierStevensSuite already linked: %s\n", dst)
+			return
+		}
+		fmt.Printf("[!] %s already points to %s; leaving it alone\n", dst, resolved)
+		return
+	}
+	if _, err := os.Lstat(dst); err == nil {
+		fmt.Printf("[!] %s already exists; leaving it alone\n", dst)
+		return
+	}
+	if err := os.Symlink(src, dst); err != nil {
+		fmt.Printf("[!] Cannot link %s -> %s: %v\n", dst, src, err)
+		fmt.Printf("    Set COLDCASE_SUITE=%s instead.\n", src)
+		return
+	}
+	fmt.Printf("[*] Linked %s -> %s\n", dst, src)
 }
 
 func installDependencies(cmd *cobra.Command, args []string) {
@@ -88,6 +149,9 @@ func installDependencies(cmd *cobra.Command, args []string) {
 	fmt.Println("\nInstalling Python dependencies...")
 	installPythonDeps(cmd, args)
 
+	fmt.Println("\nLinking DidierStevensSuite...")
+	linkDidierSuite()
+
 	if useUV && !tools.CheckToolInstalled("uv") {
 		fmt.Println("\nInstalling uv...")
 		run("curl", "-LsSf", "https://astral.sh/uv/install.sh", "|", "sh")
@@ -137,7 +201,9 @@ func checkDeps(cmd *cobra.Command, args []string) {
 			missing = true
 		}
 	}
-	if _, err := os.Stat("./DidierStevensSuite"); os.IsNotExist(err) {
+	if p := catalog.ResolveSuitePath(); p != catalog.DefaultSuitePath {
+		fmt.Printf("[*] DidierStevensSuite   found at %s\n", p)
+	} else {
 		fmt.Println("[x] Missing: DidierStevensSuite directory")
 		missing = true
 	}

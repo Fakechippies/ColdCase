@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"coldcase/pkg/catalog"
 	"coldcase/pkg/runner"
@@ -72,8 +71,8 @@ func checkTools(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if _, err := os.Stat(catalog.DefaultSuitePath); err == nil {
-		fmt.Println("[*] DidierStevensSuite   found")
+	if p := catalog.ResolveSuitePath(); p != catalog.DefaultSuitePath {
+		fmt.Printf("[*] DidierStevensSuite   found at %s\n", p)
 	} else {
 		fmt.Println("[x] DidierStevensSuite   not found")
 	}

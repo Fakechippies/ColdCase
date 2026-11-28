@@ -34,6 +34,12 @@ First tagged release.
 ## [Unreleased]
 
 ### Fixed
+- Suite discovery: DidierStevens tools resolved `./DidierStevensSuite`
+  relative to the working directory, so an installed binary only worked
+  from the repo root. `coldcase` now searches `$COLDCASE_SUITE`, the
+  working directory and its parents, the executable's directory, and
+  `~/.coldcase/DidierStevensSuite`; `coldcase install` links the suite into
+  that last location, and `coldcase suite [link]` reports or creates it.
 - Web console: tool stdout and stderr now render — SSE payloads are JSON
   strings and the handlers read them as objects, which silently dropped
   every output chunk.
